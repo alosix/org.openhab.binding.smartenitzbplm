@@ -16,6 +16,7 @@ import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingC
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
@@ -24,7 +25,14 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
+import org.openhab.binding.insteonplm.port.PortListener;
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
+import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
+import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
+import org.openhab.binding.smartenitzbplm.internal.driver.Driver;
+import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * The {@link SmartenItZBPLMHandlerFactory} is responsible for creating things and thing
@@ -36,9 +44,37 @@ import org.osgi.service.component.annotations.Component;
 @Component(configurationPid = "binding.smartenitzbplm", service = ThingHandlerFactory.class)
 public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
 
-    private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(THING_TYPE_SAMPLE);
+    private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(THING_TYPE_GENERIC_DEVICE);
+    
+    //private Driver driver = null;
+    //private PortListener portListener = null;
+    
+    private ConcurrentHashMap<InsteonAddress, InsteonDevice> devices = new ConcurrentHashMap<InsteonAddress, InsteonDevice>(); // list of all configured devices
+    
+    private long devicePollInterval = 300000L; // in milliseconds
+    private long deadDeviceTimeout = -1L;
+    private long refreshInterval = 600000L; // in milliseconds
+    private int messagesReceived = 0;
+    private boolean isActive = false; // state of binding
+    private boolean hasInitialItemConfig = false;
 
-    @Override
+	//private DeviceTypeLoader bindDeviceTypeLoader;
+
+    // TODO: JWP: Add back in when the references exist
+//    @Reference
+//    public void bindDeviceTypeLoader(DeviceTypeLoader deviceTypeLoader) {
+//    	//this.bindDeviceTypeLoader = deviceTypeLoader;
+//    }
+//
+//    @Override
+//	protected void activate(ComponentContext componentContext) {
+//		super.activate(componentContext);
+//		//driver = new Driver();
+//		
+//		//portListener = new PortListener(driver, devices);
+//	}
+
+	@Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
         return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
@@ -47,7 +83,7 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     protected @Nullable ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
 
-        if (THING_TYPE_SAMPLE.equals(thingTypeUID)) {
+        if (THING_TYPE_GENERIC_DEVICE.equals(thingTypeUID)) {
             return new SmartenItZBPLMHandler(thing);
         }
 

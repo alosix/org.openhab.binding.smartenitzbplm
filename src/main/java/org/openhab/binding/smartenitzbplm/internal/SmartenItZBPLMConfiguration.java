@@ -20,7 +20,26 @@ package org.openhab.binding.smartenitzbplm.internal;
 public class SmartenItZBPLMConfiguration {
 
     /**
-     * Sample configuration parameter. Replace with your own.
+     * The Refresh interval
      */
-    public String config1;
+    public Integer refresh;
+    
+    /**
+     * The device dead count
+     */
+    public Long deadDeviceCount;
+
+	public Double rampTime;
+
+	public String cmd;
+
+	public int dimmerMax;
+	
+	public Integer rampLevel;
+	
+	public Integer group;
+
+	public String name;
+
+	
 }

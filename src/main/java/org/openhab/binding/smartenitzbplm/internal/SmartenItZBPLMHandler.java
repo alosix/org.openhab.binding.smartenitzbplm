@@ -14,6 +14,9 @@ package org.openhab.binding.smartenitzbplm.internal;
 
 import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.thing.ChannelUID;
@@ -22,6 +25,9 @@ import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
+import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
+import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
+import org.openhab.binding.smartenitzbplm.internal.driver.Driver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +43,18 @@ public class SmartenItZBPLMHandler extends BaseThingHandler {
     private final Logger logger = LoggerFactory.getLogger(SmartenItZBPLMHandler.class);
 
     private @Nullable SmartenItZBPLMConfiguration config;
+    
+    //private Driver driver = null;
+    private ConcurrentHashMap<InsteonAddress, InsteonDevice> devices = new ConcurrentHashMap<InsteonAddress, InsteonDevice>(); // list of all configured devices
+    //private PortListener portListener = new PortListener(driver, devices);
+    private long devicePollInterval = 300000L; // in milliseconds
+    private long deadDeviceTimeout = -1L;
+    private long refreshInterval = 600000L; // in milliseconds
+    private int messagesReceived = 0;
+    private boolean isActive = false; // state of binding
+    private boolean hasInitialItemConfig = false;
+    
+
 
     public SmartenItZBPLMHandler(Thing thing) {
         super(thing);
@@ -46,6 +64,7 @@ public class SmartenItZBPLMHandler extends BaseThingHandler {
     public void handleCommand(ChannelUID channelUID, Command command) {
         if (CHANNEL_1.equals(channelUID.getId())) {
             if (command instanceof RefreshType) {
+            	            	
                 // TODO: handle data refresh
             }
 
@@ -81,12 +100,13 @@ public class SmartenItZBPLMHandler extends BaseThingHandler {
             boolean thingReachable = true; // <background task with long running initialization here>
             // when done do:
             if (thingReachable) {
-                updateStatus(ThingStatus.ONLINE);
+            	updateStatus(ThingStatus.ONLINE);
             } else {
                 updateStatus(ThingStatus.OFFLINE);
             }
         });
 
+        updateStatus(ThingStatus.ONLINE);
         // logger.debug("Finished initializing!");
 
         // Note: When initialization can NOT be done set the status with more details for further
