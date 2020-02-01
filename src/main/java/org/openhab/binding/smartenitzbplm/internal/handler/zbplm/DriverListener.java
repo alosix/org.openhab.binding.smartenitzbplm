@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.binding.smartenitzbplm.internal.driver;
+package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 /**
  * Interface for classes that want to listen to notifications from

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.binding.smartenitzbplm.internal.driver;
+package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,28 +101,8 @@ public abstract class IOStream {
      */
     // TODO: JWP
     private synchronized boolean reconnect() {
-        //close();
-        //return (open());
-    	return true;
+        close();
+        return open();
     }
-
-    /**
-     * Creates an IOStream from an allowed config string:
-     *
-     * /dev/ttyXYZ[@baud_rate] (serial port like e.g. usb: /dev/ttyUSB0 or alias /dev/insteon)
-     *
-     * @param config
-     * @return reference to IOStream
-     */
-
-    public static IOStream s_create(String config) {
-    	String [] parts = config.split("@");
-    	if(parts.length == 1) {
-    		return new SerialIOStream(config);
-    	} else {
-    		return new SerialIOStream(parts[0], Integer.parseInt(parts[1]));
-    	}
-    }
-
 
 }

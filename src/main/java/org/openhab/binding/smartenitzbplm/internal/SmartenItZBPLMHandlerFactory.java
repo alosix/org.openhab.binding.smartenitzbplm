@@ -12,7 +12,8 @@
  */
 package org.openhab.binding.smartenitzbplm.internal;
 
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_GENERIC_DEVICE;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_PLM_COORDINATOR;
 
 import java.util.Collections;
 import java.util.Set;
@@ -20,19 +21,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
-import org.openhab.binding.insteonplm.port.PortListener;
-import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
-import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Driver;
-import org.osgi.service.component.ComponentContext;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /**
@@ -46,7 +44,7 @@ import org.slf4j.LoggerFactory;
 public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     private final Logger logger = LoggerFactory.getLogger(SmartenItZBPLMHandlerFactory.class);
 
-    private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(THING_TYPE_GENERIC_DEVICE);
+    private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(THING_TYPE_PLM_COORDINATOR);
     
     //private Driver driver = null;
     //private PortListener portListener = null;
@@ -78,7 +76,6 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
 
 	@Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
-		logger.info("Supports thing type:" + thingTypeUID.toString());
 		
         return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
@@ -86,8 +83,8 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     @Override
     protected @Nullable ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
-        if(THING_TYPE_PLM_COORDINATOR.equals(thing)) {
-        	return new 
+        if(THING_TYPE_PLM_COORDINATOR.equals(thingTypeUID)) {
+        	return new ZBPLMHandler((Bridge) thing);
         }
 
         if (THING_TYPE_GENERIC_DEVICE.equals(thingTypeUID)) {

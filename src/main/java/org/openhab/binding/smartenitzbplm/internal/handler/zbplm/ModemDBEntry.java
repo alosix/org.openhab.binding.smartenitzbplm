@@ -10,13 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.binding.smartenitzbplm.internal.driver;
+package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.util.ArrayList;
 import java.util.Collections;
 
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
-import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
 

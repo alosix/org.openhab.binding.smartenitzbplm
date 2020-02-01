@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import org.openhab.binding.smartenitzbplm.internal.driver.ModemDBEntry;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
  * @since 1.5.0
  */
 
-@Component
 public class ModemDBBuilder implements MsgListener, Runnable {
     private static final Logger logger = LoggerFactory.getLogger(ModemDBBuilder.class);
     private boolean isComplete = false;
@@ -45,14 +44,9 @@ public class ModemDBBuilder implements MsgListener, Runnable {
     private int timeoutMillis = 120000;
 
     
-    public ModemDBBuilder() {
+    public ModemDBBuilder(Port port) {
+    	this.port = port;
 	}
-
-    // TODO: JWP add back when there's a port reference
-//	@Reference
-//	public void bindPort(Port port) {
-//		this.port = port;
-//	}
 
     public void setRetryTimeout(int timeout) {
         this.timeoutMillis = timeout;

@@ -17,8 +17,7 @@ import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
-import org.openhab.binding.smartenitzbplm.internal.driver.DriverListener;
-import org.openhab.binding.smartenitzbplm.internal.driver.ModemDBEntry;
+import org.openhab.binding.smartenitzbplm.internal.device.ModemDBBuilder;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
 import org.slf4j.Logger;
@@ -38,25 +37,25 @@ public class Driver {
     private static final Logger logger = LoggerFactory.getLogger(Driver.class);
 
     // maps device name to serial port, i.e /dev/insteon -> Port object
-    private HashMap<String, Port> m_ports = new HashMap<String, Port>();
-    private DriverListener m_listener = null; // single listener for notifications
-    private HashMap<InsteonAddress, ModemDBEntry> m_modemDBEntries = new HashMap<InsteonAddress, ModemDBEntry>();
-    private ReentrantLock m_modemDBEntriesLock = new ReentrantLock();
-    private int m_modemDBRetryTimeout = 120000; // in milliseconds
+    private HashMap<String, Port> ports = new HashMap<String, Port>();
+    private DriverListener driverListener = null; // single listener for notifications
+    private HashMap<InsteonAddress, ModemDBEntry> modemDBEntries = new HashMap<InsteonAddress, ModemDBEntry>();
+    private ReentrantLock modemDBEntriesLock = new ReentrantLock();
+    private int modemDBRetryTimeout = 120000; // in milliseconds
 
     public void setDriverListener(DriverListener listener) {
-        m_listener = listener;
+        driverListener = listener;
     }
 
     public void setModemDBRetryTimeout(int timeout) {
-        m_modemDBRetryTimeout = timeout;
-        for (Port p : m_ports.values()) {
-            p.setModemDBRetryTimeout(m_modemDBRetryTimeout);
+        modemDBRetryTimeout = timeout;
+        for (Port p : ports.values()) {
+            p.setModemDBRetryTimeout(modemDBRetryTimeout);
         }
     }
 
     public boolean isReady() {
-        for (Port p : m_ports.values()) {
+        for (Port p : ports.values()) {
             if (!p.isRunning()) {
                 return false;
             }
@@ -65,12 +64,12 @@ public class Driver {
     }
 
     public HashMap<InsteonAddress, ModemDBEntry> lockModemDBEntries() {
-        m_modemDBEntriesLock.lock();
-        return m_modemDBEntries;
+        modemDBEntriesLock.lock();
+        return modemDBEntries;
     }
 
     public void unlockModemDBEntries() {
-        m_modemDBEntriesLock.unlock();
+        modemDBEntriesLock.unlock();
     }
 
     /**
@@ -79,13 +78,14 @@ public class Driver {
      * @param name the name of the port (from the config file, e.g. port_0, port_1, etc
      * @param port the device name, e.g. /dev/insteon, /dev/ttyUSB0 etc
      */
-    public void addPort(String name, String port) {
-        if (m_ports.keySet().contains(port)) {
+    public void addPort(String name, String port, int baudRate) {
+        if (ports.keySet().contains(port)) {
             logger.warn("ignored attempt to add duplicate port: {} {}", name, port);
         } else {
-            Port p = new Port(port, this);
-            p.setModemDBRetryTimeout(m_modemDBRetryTimeout);
-            m_ports.put(port, p);
+        	IOStream ioStream = new SerialIOStream(name, baudRate);
+            Port p = new Port(port, baudRate,  this, ioStream);
+            p.setModemDBRetryTimeout(modemDBRetryTimeout);
+            ports.put(port, p);
             logger.debug("added new port: {} {}", name, port);
         }
     }
@@ -97,21 +97,21 @@ public class Driver {
      * @param port the port (e.g. /dev/ttyUSB0) to which the listener listens
      */
     public void addMsgListener(MsgListener listener, String port) {
-        if (m_ports.keySet().contains(port)) {
-            m_ports.get(port).addListener(listener);
+        if (ports.keySet().contains(port)) {
+            ports.get(port).addListener(listener);
         } else {
             logger.error("referencing unknown port {}!", port);
         }
     }
 
     public void startAllPorts() {
-        for (Port p : m_ports.values()) {
+        for (Port p : ports.values()) {
             p.start();
         }
     }
 
     public void stopAllPorts() {
-        for (Port p : m_ports.values()) {
+        for (Port p : ports.values()) {
             p.stop();
         }
     }
@@ -133,12 +133,12 @@ public class Driver {
     }
 
     public String getDefaultPort() {
-        return (m_ports.isEmpty() ? null : m_ports.keySet().iterator().next());
+        return (ports.isEmpty() ? null : ports.keySet().iterator().next());
     }
 
     public int getNumberOfPorts() {
         int n = 0;
-        for (Port p : m_ports.values()) {
+        for (Port p : ports.values()) {
             if (p.isRunning()) {
                 n++;
             }
@@ -150,7 +150,7 @@ public class Driver {
         if (toAddr == null) {
             return false;
         }
-        for (Port p : m_ports.values()) {
+        for (Port p : ports.values()) {
             if (p.getAddress().equals(toAddr)) {
                 return true;
             }
@@ -166,17 +166,17 @@ public class Driver {
      */
     public Port getPort(String port) {
         if (port.equalsIgnoreCase("DEFAULT")) {
-            if (m_ports.isEmpty()) {
+            if (ports.isEmpty()) {
                 logger.error("no default port found!");
                 return null;
             }
-            return m_ports.values().iterator().next();
+            return ports.values().iterator().next();
         }
-        if (!m_ports.containsKey(port)) {
+        if (!ports.containsKey(port)) {
             logger.error("no port of name {} found!", port);
             return null;
         }
-        return m_ports.get(port);
+        return ports.get(port);
     }
 
     public void modemDBComplete(Port port) {
@@ -185,12 +185,12 @@ public class Driver {
             return;
         }
         // if yes, notify listener
-        m_listener.driverCompletelyInitialized();
+        driverListener.driverCompletelyInitialized();
     }
 
     public boolean isModemDBComplete() {
         // check if all ports have a complete device list
-        for (Port p : m_ports.values()) {
+        for (Port p : ports.values()) {
             if (!p.isModemDBComplete()) {
                 return false;
             }

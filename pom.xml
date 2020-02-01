@@ -53,6 +53,14 @@
       <type>pom</type>
       <scope>provided</scope>
     </dependency>
+	<dependency>
+    	<groupId>commons-collections</groupId>
+    	<artifactId>commons-collections</artifactId>
+    	<version>3.2.2</version>
+    	<scope>provided</scope>
+	</dependency>
+
+    
     <!-- <dependency>
     	<groupId>org.openhab.addons.bundles</groupId>
     	<artifactId>org.openhab.binding.zigbee</artifactId>
