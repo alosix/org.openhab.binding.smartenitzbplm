@@ -59,10 +59,12 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 
 	private Set<String> portOpenRuntimeExcepionMessages = ConcurrentHashMap.newKeySet();
 
-	public SerialIOStream(String devName, int speed) {
+	public SerialIOStream(SerialPortManager serialPortManager, String devName, int speed) {
+		this.serialPortManager = serialPortManager;
 		portName = devName;
 		baudRate = speed;
 	}
+	
 
 //	@Override
 //    public boolean open() {
@@ -102,6 +104,12 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 
 
 	@Override
+	public String toString() {
+		return "SerialIOStream [baudRate=" + baudRate + ", portName=" + portName + "]";
+	}
+
+
+	@Override
 	public boolean open() {
 		try {
 			logger.debug("Connecting to serial port [{}] at {} baud", portName, baudRate);
@@ -111,7 +119,7 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 			// CommPortIdentifier#open will kill the whole JVM
 			Stream<SerialPortIdentifier> serialPortIdentifiers = serialPortManager.getIdentifiers();
 			if (!serialPortIdentifiers.findAny().isPresent()) {
-				logger.debug("No communication ports found, cannot connect to [{}]", portName);
+				logger.info("No communication ports found, cannot connect to [{}]", portName);
 				return false;
 			}
 
@@ -231,6 +239,12 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 		}
 
 	}
+
+	@Override
+	public String getDeviceName() {
+		return this.portName;
+	}
+
 
 	public void purgeRxBuffer() {
 		buffer.clear();

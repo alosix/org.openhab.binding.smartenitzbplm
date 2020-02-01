@@ -22,7 +22,6 @@ import org.openhab.binding.smartenitzbplm.internal.device.DeviceType;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
-import org.openhab.binding.smartenitzbplm.internal.device.ModemDBBuilder;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
@@ -62,7 +61,6 @@ public class Port {
     }
 
     private IOStream ioStream = null;
-    private String devName = "INVALID";
     private Modem modem = null;
     private IOStreamReader reader = null;
     private IOStreamWriter writer = null;
@@ -84,8 +82,7 @@ public class Port {
      * @param baudRate 
      * @param driver The Driver object that manages this port
      */
-    public Port(String devName, int baudRate, Driver driver,  IOStream ioStream) {
-        this.devName = devName;
+    public Port(Driver driver,  IOStream ioStream) {
         this.driver = driver;
         this.modem = new Modem();
         this.ioStream = ioStream;
@@ -108,7 +105,7 @@ public class Port {
     }
 
     public String getDeviceName() {
-        return devName;
+        return ioStream.getDeviceName();
     }
 
     public Driver getDriver() {
@@ -149,22 +146,22 @@ public class Port {
      * Starts threads necessary for reading and writing
      */
     public void start() {
-        logger.debug("starting port {}", devName);
+        logger.info("starting port {}", ioStream.toString());
         if (running) {
-            logger.debug("port {} already running, not started again", devName);
+            logger.info("port {} already running, not started again", ioStream.toString());
         }
         if (!ioStream.open()) {
-            logger.debug("failed to open port {}", devName);
+            logger.info("failed to open port {}", ioStream.toString());
             return;
         }
         readThread = new Thread(reader);
         writeThread = new Thread(writer);
-        readThread.setName(devName + " Reader");
-        writeThread.setName(devName + " Writer");
+        readThread.setName(ioStream.toString() + " Reader");
+        writeThread.setName(ioStream.toString() + " Writer");
         readThread.start();
         writeThread.start();
         modem.initialize();
-        //m_mdbb.start(); // start downloading the device list
+        modemDBBuilder.start(); // start downloading the device list
         running = true;
     }
 
@@ -173,7 +170,7 @@ public class Port {
      */
     public void stop() {
         if (!running) {
-            logger.debug("port {} not running, no need to stop it", devName);
+            logger.debug("port {} not running, no need to stop it", ioStream.toString());
             return;
         }
         if (modemDBBuilder != null) {
@@ -185,7 +182,7 @@ public class Port {
         if (writeThread != null) {
             writeThread.interrupt();
         }
-        logger.debug("waiting for read thread to exit for port {}", devName);
+        logger.debug("waiting for read thread to exit for port {}", ioStream);
         try {
             if (readThread != null) {
                 readThread.join();
@@ -193,7 +190,7 @@ public class Port {
         } catch (InterruptedException e) {
             logger.debug("got interrupted waiting for read thread to exit.");
         }
-        logger.debug("waiting for write thread to exit for port {}", devName);
+        logger.debug("waiting for write thread to exit for port {}", ioStream);
         try {
             if (writeThread != null) {
                 writeThread.join();
@@ -201,7 +198,7 @@ public class Port {
         } catch (InterruptedException e) {
             logger.debug("got interrupted waiting for write thread to exit.");
         }
-        logger.debug("all threads for port {} stopped.", devName);
+        logger.debug("all threads for port {} stopped.", ioStream);
         ioStream.close();
         running = false;
         synchronized (listeners) {
@@ -359,7 +356,7 @@ public class Port {
                 tempList = (ArrayList<MsgListener>) listeners.clone();
             }
             for (MsgListener l : tempList) {
-                l.msg(msg, devName); // deliver msg to listener
+                l.msg(msg, ioStream.getDeviceName()); // deliver msg to listener
             }
         }
 

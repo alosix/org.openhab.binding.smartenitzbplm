@@ -10,15 +10,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.binding.smartenitzbplm.internal.device;
+package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.concurrent.Executors;
 
-import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
-import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
+import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
@@ -52,7 +52,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
         this.timeoutMillis = timeout;
     }
 
-    protected void activate(ComponentContext componentContext) {
+    protected void start() {
         //port.addListener(this);
         writeThread = new Thread(this);
         writeThread.setName("DBBuilder");
@@ -61,7 +61,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
     }
 
     public void startDownload() {
-        logger.trace("starting modem database download");
+        logger.info("starting modem database download");
         port.clearModemDB();
         getFirstLinkRecord();
     }
@@ -146,7 +146,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
                 for (Msg m : lrs) {
                     int recordFlags = m.getByte("RecordFlags") & 0xff;
                     String ms = ((recordFlags & (0x1 << 6)) != 0) ? "CTRL" : "RESP";
-                    logger.debug("MDB {}: {} group: {} data1: {} data2: {} data3: {}", db.getKey(), ms,
+                    logger.info("MDB {}: {} group: {} data1: {} data2: {} data3: {}", db.getKey(), ms,
                             toHex(m.getByte("ALLLinkGroup")), toHex(m.getByte("LinkData1")),
                             toHex(m.getByte("LinkData2")), toHex(m.getByte("LinkData2")));
                 }

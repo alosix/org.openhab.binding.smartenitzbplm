@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
-import org.openhab.binding.smartenitzbplm.internal.device.ModemDBBuilder;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
 import org.slf4j.Logger;
@@ -41,19 +40,12 @@ public class Driver {
     private DriverListener driverListener = null; // single listener for notifications
     private HashMap<InsteonAddress, ModemDBEntry> modemDBEntries = new HashMap<InsteonAddress, ModemDBEntry>();
     private ReentrantLock modemDBEntriesLock = new ReentrantLock();
-    private int modemDBRetryTimeout = 120000; // in milliseconds
-
+  
     public void setDriverListener(DriverListener listener) {
         driverListener = listener;
     }
 
-    public void setModemDBRetryTimeout(int timeout) {
-        modemDBRetryTimeout = timeout;
-        for (Port p : ports.values()) {
-            p.setModemDBRetryTimeout(modemDBRetryTimeout);
-        }
-    }
-
+  
     public boolean isReady() {
         for (Port p : ports.values()) {
             if (!p.isRunning()) {
@@ -78,15 +70,12 @@ public class Driver {
      * @param name the name of the port (from the config file, e.g. port_0, port_1, etc
      * @param port the device name, e.g. /dev/insteon, /dev/ttyUSB0 etc
      */
-    public void addPort(String name, String port, int baudRate) {
+    public void addPort(Port port) {
         if (ports.keySet().contains(port)) {
-            logger.warn("ignored attempt to add duplicate port: {} {}", name, port);
+            logger.warn("ignored attempt to add duplicate port: {}", port);
         } else {
-        	IOStream ioStream = new SerialIOStream(name, baudRate);
-            Port p = new Port(port, baudRate,  this, ioStream);
-            p.setModemDBRetryTimeout(modemDBRetryTimeout);
-            ports.put(port, p);
-            logger.debug("added new port: {} {}", name, port);
+            ports.put(port.getDeviceName(),port);
+            logger.debug("added new port: {} ", port);
         }
     }
 

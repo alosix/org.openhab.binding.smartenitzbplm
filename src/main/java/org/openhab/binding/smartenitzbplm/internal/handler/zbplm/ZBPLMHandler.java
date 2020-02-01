@@ -4,12 +4,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
 import org.eclipse.smarthome.core.types.Command;
+import org.eclipse.smarthome.io.transport.serial.SerialPortManager;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 
@@ -22,14 +22,21 @@ import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 public class ZBPLMHandler extends BaseBridgeHandler {
 	private Driver driver = null;
 	private ConcurrentMap<InsteonAddress, InsteonDevice> devices = null;
+	private Port port = null;
+	private IOStream ioStream = null;
+	private SerialPortManager serialPortManager;
 	
-	public ZBPLMHandler(Bridge bridge) {
+	public ZBPLMHandler(Bridge bridge, SerialPortManager serialPortManager) {
 		super(bridge);
-		Configuration config = thing.getConfiguration();
 		
+		ZBPLMConfig config = getConfigAs(ZBPLMConfig.class);
+		this.serialPortManager = serialPortManager;
 		this.driver = new Driver();
 		this.devices = new ConcurrentHashMap<>();
-		
+		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port,config.zbplm_baud);
+		this.port = new Port(driver, ioStream);
+		this.port.setModemDBRetryTimeout(120000); // TODO: JWP add config
+		this.port.start();
 		
 	}
 
@@ -37,6 +44,7 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 	public void handleRemoval() {
 		// TODO Auto-generated method stub
 		super.handleRemoval();
+		this.port.stop();
 	}
 
 	@Override

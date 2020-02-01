@@ -27,10 +27,12 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
+import org.eclipse.smarthome.io.transport.serial.SerialPortManager;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /**
@@ -57,6 +59,14 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     private int messagesReceived = 0;
     private boolean isActive = false; // state of binding
     private boolean hasInitialItemConfig = false;
+    private @Nullable SerialPortManager serialPortManager = null;
+    
+    
+    @Reference
+    public void bindSerialPortManager(SerialPortManager serialPortManager) {
+    	this.serialPortManager = serialPortManager;
+    }
+    
 
 	//private DeviceTypeLoader bindDeviceTypeLoader;
 
@@ -84,7 +94,7 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     protected @Nullable ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
         if(THING_TYPE_PLM_COORDINATOR.equals(thingTypeUID)) {
-        	return new ZBPLMHandler((Bridge) thing);
+        	return new ZBPLMHandler((Bridge) thing, serialPortManager);
         }
 
         if (THING_TYPE_GENERIC_DEVICE.equals(thingTypeUID)) {

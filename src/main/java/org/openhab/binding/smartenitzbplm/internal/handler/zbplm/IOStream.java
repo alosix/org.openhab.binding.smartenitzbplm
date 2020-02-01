@@ -105,4 +105,9 @@ public abstract class IOStream {
         return open();
     }
 
+	public String getDeviceName() {
+		// TODO Auto-generated method stub
+		return "";
+	}
+
 }
