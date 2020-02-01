@@ -145,14 +145,14 @@ public class Port {
     /**
      * Starts threads necessary for reading and writing
      */
-    public void start() {
+    public boolean  start() {
         logger.info("starting port {}", ioStream.toString());
         if (running) {
             logger.info("port {} already running, not started again", ioStream.toString());
         }
         if (!ioStream.open()) {
             logger.info("failed to open port {}", ioStream.toString());
-            return;
+            return false;
         }
         readThread = new Thread(reader);
         writeThread = new Thread(writer);
@@ -163,6 +163,7 @@ public class Port {
         modem.initialize();
         modemDBBuilder.start(); // start downloading the device list
         running = true;
+        return true;
     }
 
     /**

@@ -112,8 +112,7 @@ public class Msg {
     static {
         // Use xml msg loader to load configs
         try {
-            InputStream stream = Thread.currentThread().getContextClassLoader()
-                    .getResourceAsStream("msg_definitions.xml");
+            InputStream stream = Msg.class.getResourceAsStream("/msg_definitions.xml");
             if (stream != null) {
                 HashMap<String, Msg> msgs = XMLMessageReader.s_readMessageDefinitions(stream);
                 s_msgMap.putAll(msgs);

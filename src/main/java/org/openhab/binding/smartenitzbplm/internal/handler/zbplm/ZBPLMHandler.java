@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentMap;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
+import org.eclipse.smarthome.core.thing.ThingStatus;
+import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.io.transport.serial.SerialPortManager;
@@ -36,7 +38,15 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port,config.zbplm_baud);
 		this.port = new Port(driver, ioStream);
 		this.port.setModemDBRetryTimeout(120000); // TODO: JWP add config
-		this.port.start();
+		boolean portStarted = this.port.start();
+		if(portStarted) {
+			this.updateStatus(ThingStatus.ONLINE);	
+		} else {
+			port.stop();
+			this.updateStatus(ThingStatus.OFFLINE,ThingStatusDetail.BRIDGE_OFFLINE);
+		}
+		
+		
 		
 	}
 
