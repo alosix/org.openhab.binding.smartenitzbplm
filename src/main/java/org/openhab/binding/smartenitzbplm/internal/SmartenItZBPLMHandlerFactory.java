@@ -29,11 +29,12 @@ import org.openhab.binding.insteonplm.port.PortListener;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
-import org.openhab.binding.smartenitzbplm.internal.driver.Driver;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Driver;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * The {@link SmartenItZBPLMHandlerFactory} is responsible for creating things and thing
  * handlers.
@@ -43,6 +44,7 @@ import org.osgi.service.component.annotations.Reference;
 @NonNullByDefault
 @Component(configurationPid = "binding.smartenitzbplm", service = ThingHandlerFactory.class)
 public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
+    private final Logger logger = LoggerFactory.getLogger(SmartenItZBPLMHandlerFactory.class);
 
     private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(THING_TYPE_GENERIC_DEVICE);
     
@@ -76,12 +78,17 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
 
 	@Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
+		logger.info("Supports thing type:" + thingTypeUID.toString());
+		
         return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
 
     @Override
     protected @Nullable ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
+        if(THING_TYPE_PLM_COORDINATOR.equals(thing)) {
+        	return new 
+        }
 
         if (THING_TYPE_GENERIC_DEVICE.equals(thingTypeUID)) {
             return new SmartenItZBPLMHandler(thing);

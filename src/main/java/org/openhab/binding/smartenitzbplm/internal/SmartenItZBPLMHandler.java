@@ -27,7 +27,7 @@ import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
-import org.openhab.binding.smartenitzbplm.internal.driver.Driver;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Driver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

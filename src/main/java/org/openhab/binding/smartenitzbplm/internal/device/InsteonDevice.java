@@ -22,7 +22,7 @@ import java.util.PriorityQueue;
 import org.eclipse.smarthome.core.types.Command;
 import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMConfiguration;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceType.FeatureGroup;
-import org.openhab.binding.smartenitzbplm.internal.driver.Driver;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Driver;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.slf4j.Logger;

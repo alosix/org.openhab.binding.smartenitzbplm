@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 import org.openhab.binding.smartenitzbplm.internal.driver.ModemDBEntry;
-import org.openhab.binding.smartenitzbplm.internal.driver.Port;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
