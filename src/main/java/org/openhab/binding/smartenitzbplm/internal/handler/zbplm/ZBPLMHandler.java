@@ -58,6 +58,13 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 	}
 
 	@Override
+	public void dispose() {
+		super.dispose();
+		this.port.stop();
+	}
+	
+	
+	@Override
 	public void handleConfigurationUpdate(Map<String, Object> configurationParameters) {
 		// TODO Auto-generated method stub
 		super.handleConfigurationUpdate(configurationParameters);
@@ -73,6 +80,14 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 	@Override
 	public void handleCommand(ChannelUID channelUID, Command command) {
 		// TODO Auto-generated method stub
+		
+	}
+
+	/**
+	 * 
+	 * @param scanTimeout
+	 */
+	public void startScan(int scanTimeout) {
 		
 	}
 

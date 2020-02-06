@@ -33,4 +33,16 @@ public class SmartenItZBPLMBindingConstants {
 
     // List of all Channel ids
     public static final String CHANNEL_1 = "channel1";
+    
+	
+    // List of configuration keys
+    public static final String ZBPLM_PORT = "zbplm_port";
+	public static final String ZBPLM_BAUD = "zbplm_baud";
+	public static final String ZBPLM_FLOWCONTROL =  "zbplm_flowcontrol";
+
+	
+	 // List of configuration values for flow control
+    public static final Integer FLOWCONTROL_CONFIG_NONE = Integer.valueOf(0);
+    public static final Integer FLOWCONTROL_CONFIG_HARDWARE_CTSRTS = Integer.valueOf(1);
+    public static final Integer FLOWCONTROL_CONFIG_SOFTWARE_XONXOFF = Integer.valueOf(2);
 }

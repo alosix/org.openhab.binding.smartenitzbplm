@@ -66,43 +66,6 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	}
 	
 
-//	@Override
-//    public boolean open() {
-//        try {
-//            updateSerialProperties(m_devName);
-//            CommPortIdentifier ci = CommPortIdentifier.getPortIdentifier(m_devName);
-//            CommPort cp = ci.open(m_appName, 1000);
-//            if (cp instanceof SerialPort) {
-//                m_port = (SerialPort) cp;
-//            } else {
-//                throw new IllegalStateException("unknown port type");
-//            }
-//            m_port.setSerialPortParams(m_speed, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
-//            m_port.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
-//            logger.debug("setting port speed to {}", m_speed);
-//            //m_port.disableReceiveFraming();
-//            m_port.enableReceiveThreshold(1);
-//            // m_port.disableReceiveTimeout();
-//            m_port.enableReceiveTimeout(1000);
-//            m_in = m_port.getInputStream();
-//            m_out = m_port.getOutputStream();
-//            logger.info("successfully opened port {}", m_devName);
-//            return true;
-//        } catch (IOException e) {
-//            logger.error("cannot open port: {}, got IOException ", m_devName, e);
-//        } catch (PortInUseException e) {
-//            logger.error("cannot open port: {}, it is in use!", m_devName);
-//        } catch (UnsupportedCommOperationException e) {
-//            logger.error("got unsupported operation {} on port {}", e.getMessage(), m_devName);
-//        } catch (NoSuchPortException e) {
-//            logger.error("got no such port for {}", m_devName);
-//        } catch (IllegalStateException e) {
-//            logger.error("got unknown port type for {}", m_devName);
-//        }
-//        return false;
-//    }
-
-
 	@Override
 	public String toString() {
 		return "SerialIOStream [baudRate=" + baudRate + ", portName=" + portName + "]";
@@ -177,6 +140,7 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	@Override
 	public void close() {
 		try {
+			synchronized (this) {
 			if (serialPort != null) {
 				serialPort.removeEventListener();
 
@@ -191,12 +155,13 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 				inputStream = null;
 				outputStream = null;
 
-				synchronized (this) {
-					this.notify();
-				}
+				
+				this.notify();
+				
 
-				logger.debug("Serial port '{}' closed.", portName);
-			}
+				logger.info("Serial port '{}' closed.", portName);
+				}
+			}	
 		} catch (Exception e) {
 			logger.error("Error closing serial port: '{}' ", portName, e);
 		}

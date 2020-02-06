@@ -53,7 +53,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
     }
 
     protected void start() {
-        //port.addListener(this);
+        port.addListener(this);
         writeThread = new Thread(this);
         writeThread.setName("DBBuilder");
         writeThread.start();

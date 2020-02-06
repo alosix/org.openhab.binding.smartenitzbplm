@@ -170,6 +170,8 @@ public class Port {
      * Stops all threads
      */
     public void stop() {
+    	logger.info("Stopping port:" + this.getDeviceName());
+    	
         if (!running) {
             logger.debug("port {} not running, no need to stop it", ioStream.toString());
             return;
@@ -199,7 +201,7 @@ public class Port {
         } catch (InterruptedException e) {
             logger.debug("got interrupted waiting for write thread to exit.");
         }
-        logger.debug("all threads for port {} stopped.", ioStream);
+        logger.info("all threads for port {} stopped.", ioStream);
         ioStream.close();
         running = false;
         synchronized (listeners) {
