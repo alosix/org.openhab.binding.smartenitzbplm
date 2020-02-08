@@ -69,17 +69,18 @@ public class Msg {
     }
 
     // has the structure of all known messages
-    private static final HashMap<String, Msg> s_msgMap = new HashMap<String, Msg>();
+    private static final HashMap<String, Msg> msgMap = new HashMap<String, Msg>();
     // maps between command number and the length of the header
-    private static final HashMap<Integer, Integer> s_headerMap = new HashMap<Integer, Integer>();
+    private static final HashMap<Integer, Integer> headerMap = new HashMap<Integer, Integer>();
     // has templates for all message from modem to host
-    private static final HashMap<Integer, Msg> s_replyMap = new HashMap<Integer, Msg>();
+    private static final HashMap<Integer, Msg> replyMap = new HashMap<Integer, Msg>();
 
     private int m_headerLength = -1;
     private byte[] m_data = null;
     private MsgDefinition m_definition = new MsgDefinition();
     private Direction m_direction = Direction.TO_MODEM;
     private long m_quietTime = 0;
+    private String name = null;
 
     /**
      * Constructor
@@ -114,8 +115,8 @@ public class Msg {
         try {
             InputStream stream = Msg.class.getResourceAsStream("/msg_definitions.xml");
             if (stream != null) {
-                HashMap<String, Msg> msgs = XMLMessageReader.s_readMessageDefinitions(stream);
-                s_msgMap.putAll(msgs);
+                HashMap<String, Msg> msgs = XMLMessageReader.readMessageDefinitions(stream);
+                msgMap.putAll(msgs);
             } else {
                 logger.error("could not get message definition resource!");
             }
@@ -514,7 +515,7 @@ public class Msg {
                 s += f.toString(m_data) + "|";
             }
         }
-        return s;
+        return name + "|" + s;
     }
 
     /**
@@ -530,7 +531,7 @@ public class Msg {
         if (m_buf == null || m_buf.length < 2) {
             return null;
         }
-        Msg template = s_replyMap.get(cmdToKey(m_buf[1], isExtended));
+        Msg template = replyMap.get(cmdToKey(m_buf[1], isExtended));
         if (template == null) {
             return null; // cannot find lookup map
         }
@@ -550,7 +551,7 @@ public class Msg {
      * @return the length of the header to expect
      */
     public static int getHeaderLength(byte cmd) {
-        Integer len = s_headerMap.get(new Integer(cmd));
+        Integer len = headerMap.get(new Integer(cmd));
         if (len == null) {
             return (-1); // not found
         }
@@ -566,7 +567,7 @@ public class Msg {
      */
     public static int getMessageLength(byte b, boolean isExtended) {
         int key = cmdToKey(b, isExtended);
-        Msg msg = s_replyMap.get(key);
+        Msg msg = replyMap.get(key);
         if (msg == null) {
             return -1;
         }
@@ -603,7 +604,7 @@ public class Msg {
      * @throws IOException if there is no such message type known
      */
     public static Msg makeMessage(String type) throws IOException {
-        Msg m = s_msgMap.get(type);
+        Msg m = msgMap.get(type);
         if (m == null) {
             throw new IOException("unknown message type: " + type);
         }
@@ -615,19 +616,27 @@ public class Msg {
     }
 
     private static void buildHeaderMap() {
-        for (Msg m : s_msgMap.values()) {
+        for (Msg m : msgMap.values()) {
             if (m.getDirection() == Direction.FROM_MODEM) {
-                s_headerMap.put(new Integer(m.getCommandNumber()), m.getHeaderLength());
+                headerMap.put(new Integer(m.getCommandNumber()), m.getHeaderLength());
             }
         }
     }
 
     private static void buildLengthMap() {
-        for (Msg m : s_msgMap.values()) {
+        for (Msg m : msgMap.values()) {
             if (m.getDirection() == Direction.FROM_MODEM) {
                 Integer key = new Integer(cmdToKey(m.getCommandNumber(), m.isExtended()));
-                s_replyMap.put(key, m);
+                replyMap.put(key, m);
             }
         }
     }
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
 }

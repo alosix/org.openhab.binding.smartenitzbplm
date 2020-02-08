@@ -14,6 +14,7 @@ package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
@@ -31,6 +32,8 @@ import org.slf4j.LoggerFactory;
  * @author Bernd Pfrommer
  * @since 1.5.0
  */
+
+// TODO: JWP It might be worth folding this into the port
 
 public class Driver {
     private static final Logger logger = LoggerFactory.getLogger(Driver.class);
@@ -55,7 +58,7 @@ public class Driver {
         return true;
     }
 
-    public HashMap<InsteonAddress, ModemDBEntry> lockModemDBEntries() {
+    public Map<InsteonAddress, ModemDBEntry> lockModemDBEntries() {
         modemDBEntriesLock.lock();
         return modemDBEntries;
     }
@@ -112,13 +115,12 @@ public class Driver {
      * @param m the message to write
      * @throws IOException
      */
-    public void writeMessage(String port, Msg m) throws IOException {
-        Port p = getPort(port);
-        if (p == null) {
+    public void writeMessage(Port port, Msg m) throws IOException {
+        if (port == null) {
             logger.error("cannot write to unknown port {}", port);
             throw new IOException();
         }
-        p.writeMessage(m);
+        port.writeMessage(m);
     }
 
     public String getDefaultPort() {

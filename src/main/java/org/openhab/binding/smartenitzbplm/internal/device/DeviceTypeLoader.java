@@ -41,6 +41,9 @@ import org.xml.sax.SAXException;
  * @author Bernd Pfrommer
  * @since 1.5.0
  */
+
+// TODO: JWP I'm not entirely sure this is necessary after doing discovery and thign defs.
+
 @Component(immediate = true, service = DeviceTypeLoader.class, configurationPid = "devicetypeloader.zbplm")
 public class DeviceTypeLoader {
     private static final Logger logger = LoggerFactory.getLogger(DeviceTypeLoader.class);

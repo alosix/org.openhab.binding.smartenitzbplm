@@ -14,18 +14,15 @@ package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.Executors;
 
+import org.eclipse.smarthome.core.thing.Bridge;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
-import org.osgi.service.component.ComponentContext;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +100,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
      * {@inheritDoc}
      */
     @Override
-    public void msg(Msg msg, String fromPort) {
+    public void msg(Msg msg, ZBPLMHandler handler) {
         if (msg.isPureNack()) {
             return;
         }
@@ -113,7 +110,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
                 // will follow, so we do nothing here.
                 // If its "NACK", there are none
                 if (msg.getByte("ACK/NACK") == 0x15) {
-                    logger.debug("got all link records.");
+                    logger.info("got all link records.");
                     done();
                 }
             } else if (msg.getByte("Cmd") == 0x57) {
@@ -132,22 +129,22 @@ public class ModemDBBuilder implements MsgListener, Runnable {
 
     private synchronized void done() {
         isComplete = true;
-        logModemDB();
         port.removeListener(this);
         port.modemDBComplete();
+        logModemDB();
+
     }
 
     private void logModemDB() {
         try {
             logger.debug("MDB ------- start of modem link records ------------------");
-            HashMap<InsteonAddress, ModemDBEntry> dbes = port.getDriver().lockModemDBEntries();
+            Map<InsteonAddress, ModemDBEntry> dbes = port.getDriver().lockModemDBEntries();
             for (Entry<InsteonAddress, ModemDBEntry> db : dbes.entrySet()) {
                 ArrayList<Msg> lrs = db.getValue().getLinkRecords();
                 for (Msg m : lrs) {
                     int recordFlags = m.getByte("RecordFlags") & 0xff;
                     String ms = ((recordFlags & (0x1 << 6)) != 0) ? "CTRL" : "RESP";
-                    logger.info("Msg:" + m.toString());
-                    logger.info("MDB {}: {} group: {} data1: {} data2: {} data3: {}", db.getKey(), ms,
+                    logger.debug("MDB {}: {} group: {} data1: {} data2: {} data3: {}", db.getKey(), ms,
                             toHex(m.getByte("ALLLinkGroup")), toHex(m.getByte("LinkData1")),
                             toHex(m.getByte("LinkData2")), toHex(m.getByte("LinkData2")));
                 }
@@ -166,7 +163,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
     }
 
     public void updateModemDB(InsteonAddress linkAddr, Port port, Msg m) {
-        HashMap<InsteonAddress, ModemDBEntry> dbes = port.getDriver().lockModemDBEntries();
+        Map<InsteonAddress, ModemDBEntry> dbes = port.getDriver().lockModemDBEntries();
         ModemDBEntry dbe = dbes.get(linkAddr);
         if (dbe == null) {
             dbe = new ModemDBEntry(linkAddr);

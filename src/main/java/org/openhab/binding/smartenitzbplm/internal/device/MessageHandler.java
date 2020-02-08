@@ -25,6 +25,7 @@ import org.eclipse.smarthome.core.library.types.OpenClosedType;
 import org.eclipse.smarthome.core.library.types.PercentType;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceFeatureListener.StateChangeType;
 import org.openhab.binding.smartenitzbplm.internal.device.GroupMessageStateMachine.GroupMessage;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgType;
@@ -66,9 +67,9 @@ public abstract class MessageHandler {
      * @param cmd1 the insteon cmd1 field
      * @param msg the received insteon message
      * @param feature the DeviceFeature to which this message handler is attached
-     * @param fromPort the device (/dev/ttyUSB0) from which the message has been received
+     * @param handler2 the device (/dev/ttyUSB0) from which the message has been received
      */
-    public abstract void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature feature, String fromPort);
+    public abstract void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature feature, ZBPLMHandler handler2);
 
     /**
      * Method to send an extended insteon message for querying a device
@@ -338,7 +339,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             logger.debug("{} ignoring unimpl message with cmd1:{}", nm(), Utils.getHexByte(cmd1));
         }
     }
@@ -349,7 +350,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             logger.trace("{} ignore msg {}: {}", nm(), Utils.getHexByte(cmd1), msg);
         }
     }
@@ -360,7 +361,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             if (!isMybutton(msg, f)) {
                 return;
             }
@@ -391,7 +392,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             if (isMybutton(msg, f)) {
                 String mode = getStringParameter("mode", "REGULAR");
                 logger.info("{}: device {} was turned off {}.", nm(), f.getDevice().getAddress(), mode);
@@ -407,7 +408,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             if (isMybutton(msg, f)) {
                 String mode = getStringParameter("mode", "REGULAR");
                 logger.info("{}: device {} was switched on {}.", nm(), f.getDevice().getAddress(), mode);
@@ -424,7 +425,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             if (isMybutton(msg, f)) {
                 String mode = getStringParameter("mode", "REGULAR");
                 logger.info("{}: device {} was switched off {}.", nm(), f.getDevice().getAddress(), mode);
@@ -458,7 +459,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             if (cmd1 == onCmd) {
                 int level = getLevel(msg);
                 logger.info("{}: device {} was switched on using ramp to level {}.", nm(), f.getDevice().getAddress(),
@@ -505,7 +506,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             try {
                 InsteonAddress a = f.getDevice().getAddress();
                 int cmd2 = msg.getByte("command2") & 0xff;
@@ -572,7 +573,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonDevice dev = f.getDevice();
             try {
                 int cmd2 = msg.getByte("command2") & 0xff;
@@ -613,7 +614,7 @@ public abstract class MessageHandler {
             return (false);
         }
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             Msg m = f.makePollMsg();
             if (m != null) {
                 f.getDevice().enqueueMessage(m, f);
@@ -633,7 +634,7 @@ public abstract class MessageHandler {
             return (false);
         }
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             try {
                 int cmd2 = msg.getByte("command2") & 0xff;
                 int upDown = (cmd2 == 0) ? 0 : 2;
@@ -658,7 +659,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             logger.info("{}: dev {} manual state change: {}", nm(), f.getDevice().getAddress(), 0);
             m_feature.publish(new DecimalType(1), StateChangeType.ALWAYS);
 
@@ -671,7 +672,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonDevice dev = f.getDevice();
             if (!msg.isExtended()) {
                 logger.warn("{} device {} expected extended msg as info reply, got {}", nm(), dev.getAddress(), msg);
@@ -706,7 +707,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonDevice dev = f.getDevice();
             if (!msg.isExtended()) {
                 logger.trace("{} device {} ignoring non-extended msg {}", nm(), dev.getAddress(), msg);
@@ -740,7 +741,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonDevice dev = f.getDevice();
             if (!msg.isExtended()) {
                 logger.trace("{} device {} ignoring non-extended msg {}", nm(), dev.getAddress(), msg);
@@ -775,7 +776,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             if (msg.isExtended()) {
                 try {
                     // see iMeter developer notes 2423A1dev-072013-en.pdf
@@ -812,7 +813,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonDevice dev = f.getDevice();
             logger.info("{}: power meter {} was reset", nm(), dev.getAddress());
 
@@ -830,7 +831,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1a, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1a, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             GregorianCalendar calendar = new GregorianCalendar();
             calendar.setTimeInMillis(System.currentTimeMillis());
             DateTimeType t = new DateTimeType(calendar);
@@ -844,7 +845,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1a, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1a, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             byte cmd = 0x00;
             byte cmd2 = 0x00;
             try {
@@ -868,7 +869,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             m_feature.publish(OpenClosedType.CLOSED, StateChangeType.ALWAYS);
         }
     }
@@ -879,7 +880,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             m_feature.publish(OpenClosedType.OPEN, StateChangeType.ALWAYS);
         }
     }
@@ -890,7 +891,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             try {
                 byte cmd2 = msg.getByte("command2");
                 switch (cmd1) {
@@ -930,7 +931,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             m_feature.publish(OpenClosedType.CLOSED, StateChangeType.ALWAYS);
             sendExtendedQuery(f, (byte) 0x2e, (byte) 00);
         }
@@ -942,7 +943,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             m_feature.publish(OpenClosedType.OPEN, StateChangeType.ALWAYS);
             sendExtendedQuery(f, (byte) 0x2e, (byte) 00);
         }
@@ -962,7 +963,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             m_feature.getDevice().doPoll(2000); // 2000 ms delay
         }
     }
@@ -976,7 +977,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             try {
                 // first do the bit manipulations to focus on the right area
                 int mask = getIntParameter("mask", 0xFFFF);
@@ -1131,7 +1132,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonAddress a = f.getDevice().getAddress();
             logger.info("{}: set X10 device {} to ON", nm(), a);
             m_feature.publish(OnOffType.ON, StateChangeType.ALWAYS);
@@ -1144,7 +1145,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonAddress a = f.getDevice().getAddress();
             logger.info("{}: set X10 device {} to OFF", nm(), a);
             m_feature.publish(OnOffType.OFF, StateChangeType.ALWAYS);
@@ -1157,7 +1158,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonAddress a = f.getDevice().getAddress();
             logger.debug("{}: ignoring brighten message for device {}", nm(), a);
         }
@@ -1169,7 +1170,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonAddress a = f.getDevice().getAddress();
             logger.debug("{}: ignoring dim message for device {}", nm(), a);
         }
@@ -1181,7 +1182,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonAddress a = f.getDevice().getAddress();
             logger.info("{}: set X10 device {} to OPEN", nm(), a);
             m_feature.publish(OpenClosedType.OPEN, StateChangeType.ALWAYS);
@@ -1194,7 +1195,7 @@ public abstract class MessageHandler {
         }
 
         @Override
-        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, String fromPort) {
+        public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             InsteonAddress a = f.getDevice().getAddress();
             logger.info("{}: set X10 device {} to CLOSED", nm(), a);
             m_feature.publish(OpenClosedType.CLOSED, StateChangeType.ALWAYS);

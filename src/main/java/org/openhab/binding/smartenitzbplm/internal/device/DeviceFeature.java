@@ -24,6 +24,7 @@ import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.State;
 import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMConfiguration;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceFeatureListener.StateChangeType;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils.ParsingException;
 import org.slf4j.Logger;
@@ -256,15 +257,15 @@ public class DeviceFeature {
      * Called when message is incoming. Dispatches message according to message dispatcher
      * 
      * @param msg The message to dispatch
-     * @param port the port from which the message came
+     * @param handler2 the port from which the message came
      * @return true if dispatch successful
      */
-    public boolean handleMessage(Msg msg, String port) {
+    public boolean handleMessage(Msg msg, ZBPLMHandler handler2) {
         if (m_dispatcher == null) {
             logger.error("{} no dispatcher for msg {}", m_name, msg);
             return false;
         }
-        return (m_dispatcher.dispatch(msg, port));
+        return (m_dispatcher.dispatch(msg, handler2));
     }
 
     /**

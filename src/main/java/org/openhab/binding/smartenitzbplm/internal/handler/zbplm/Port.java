@@ -14,10 +14,11 @@ package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.eclipse.smarthome.core.thing.Bridge;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceType;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
@@ -77,7 +78,8 @@ public class Port {
     private ModemDBBuilder modemDBBuilder = null;
     private DeviceTypeLoader deviceTypeLoader = null;
     private ArrayList<MsgListener> listeners = new ArrayList<MsgListener>();
-    private LinkedBlockingQueue<Msg> writeQueue = new LinkedBlockingQueue<Msg>();
+    private LinkedBlockingQueue<Msg> writeQueue = new LinkedBlockingQueue<Msg>(30);
+    private ZBPLMHandler handler;
 
     /**
      * Constructor
@@ -87,16 +89,17 @@ public class Port {
      * @param driver The Driver object that manages this port
      * @param deviceTypeLoader 
      */
-    public Port(Driver driver,  IOStream ioStream, MsgFactory msgFactory, DeviceTypeLoader deviceTypeLoader) {
-        this.driver = driver;
+    public Port(ZBPLMHandler handler) {
+    	this.handler = handler;
+        this.driver = handler.getDriver();
         this.modem = new Modem();
-        this.ioStream = ioStream;
-        this.msgFactory = msgFactory;
+        this.ioStream = handler.getIoStream();
+        this.msgFactory = handler.getMsgFactory();
         addListener(modem);
         this.reader = new IOStreamReader();
         this.writer = new IOStreamWriter();
         this.modemDBBuilder = new ModemDBBuilder(this);
-        this.deviceTypeLoader = deviceTypeLoader;
+        this.deviceTypeLoader = handler.getDeviceTypeLoader();
     }
 
     public synchronized boolean isModemDBComplete() {
@@ -118,8 +121,12 @@ public class Port {
     public Driver getDriver() {
         return driver;
     }
+    
+    public ModemDBBuilder getModemDBBuilder() {
+		return modemDBBuilder;
+	}
 
-    public void setModemDBRetryTimeout(int timeout) {
+	public void setModemDBRetryTimeout(int timeout) {
         modemDBBuilder.setRetryTimeout(timeout);
     }
 
@@ -145,7 +152,7 @@ public class Port {
      */
     public void clearModemDB() {
         logger.debug("clearing modem db!");
-        HashMap<InsteonAddress, ModemDBEntry> dbes = getDriver().lockModemDBEntries();
+        Map<InsteonAddress, ModemDBEntry> dbes = getDriver().lockModemDBEntries();
         dbes.clear();
         getDriver().unlockModemDBEntries();
     }
@@ -157,6 +164,7 @@ public class Port {
         logger.info("starting port {}", ioStream.toString());
         if (running) {
             logger.info("port {} already running, not started again", ioStream.toString());
+            return true;
         }
         if (!ioStream.open()) {
             logger.info("failed to open port {}", ioStream.toString());
@@ -184,6 +192,7 @@ public class Port {
             logger.debug("port {} not running, no need to stop it", ioStream.toString());
             return;
         }
+        ioStream.close();
         if (modemDBBuilder != null) {
             modemDBBuilder = null;
         }
@@ -210,7 +219,7 @@ public class Port {
             logger.debug("got interrupted waiting for write thread to exit.");
         }
         logger.info("all threads for port {} stopped.", ioStream);
-        ioStream.close();
+        
         running = false;
         synchronized (listeners) {
             listeners.clear();
@@ -367,7 +376,7 @@ public class Port {
                 tempList = (ArrayList<MsgListener>) listeners.clone();
             }
             for (MsgListener l : tempList) {
-                l.msg(msg, ioStream.getDeviceName()); // deliver msg to listener
+                l.msg(msg, handler ); // deliver msg to listener
             }
         }
 
@@ -468,7 +477,7 @@ public class Port {
         }
 
         @Override
-        public void msg(Msg msg, String fromPort) {
+        public void msg(Msg msg, ZBPLMHandler handler) {
             try {
                 if (msg.isPureNack()) {
                     return;
@@ -486,7 +495,7 @@ public class Port {
                         device.setProductKey(prodKey);
                         device.setDriver(driver);
                         device.setIsModem(true);
-                        device.addPort(fromPort);
+                        device.setHandler(handler);
                         logger.debug("found modem {} in device_types: {}", a, device.toString());
                         modemDBBuilder.updateModemDB(a, Port.this, null);
                     }

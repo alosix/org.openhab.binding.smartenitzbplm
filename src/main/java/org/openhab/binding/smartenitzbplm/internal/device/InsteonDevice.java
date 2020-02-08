@@ -19,10 +19,12 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
 
+import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.types.Command;
 import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMConfiguration;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceType.FeatureGroup;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Driver;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.slf4j.Logger;
@@ -47,7 +49,6 @@ public class InsteonDevice {
 	}
 
 	private InsteonAddress m_address = new InsteonAddress();
-	private ArrayList<String> m_ports = new ArrayList<String>();
 	private long m_pollInterval = -1L; // in milliseconds
 	private Driver m_driver = null;
 	private HashMap<String, DeviceFeature> m_features = new HashMap<String, DeviceFeature>();
@@ -64,6 +65,7 @@ public class InsteonDevice {
 	private long m_lastQueryTime = 0L;
 	private boolean m_hasModemDBEntry = false;
 	private DeviceStatus m_status = DeviceStatus.INITIALIZED;
+	private ZBPLMHandler handler;
 
 	/**
 	 * Constructor
@@ -99,7 +101,7 @@ public class InsteonDevice {
 	}
 
 	public boolean hasValidPorts() {
-		return (!m_ports.isEmpty());
+		return (handler != null);
 	}
 
 	public long getPollInterval() {
@@ -138,11 +140,12 @@ public class InsteonDevice {
 		return (m_lastTimePolled - m_lastMsgReceived);
 	}
 
-	public String getPort() throws IOException {
-		if (m_ports.isEmpty()) {
-			throw new IOException("no ports configured for instrument " + getAddress());
-		}
-		return (m_ports.iterator().next());
+	public ZBPLMHandler getHandler()  {
+		return (this.handler);
+	}
+	
+	public void setHandler(ZBPLMHandler handler) {
+		this.handler = handler;
 	}
 
 	public boolean hasAnyListeners() {
@@ -200,19 +203,7 @@ public class InsteonDevice {
 		}
 	};
 
-	/**
-	 * Add a port. Currently only a single port is being used.
-	 * 
-	 * @param p the port to add
-	 */
-	public void addPort(String p) {
-		if (p == null) {
-			return;
-		}
-		if (!m_ports.contains(p)) {
-			m_ports.add(p);
-		}
-	}
+	
 
 	/**
 	 * Removes feature listener from this device
@@ -294,10 +285,9 @@ public class InsteonDevice {
 	 * Handle incoming message for this device by forwarding it to all features that
 	 * this device supports
 	 * 
-	 * @param fromPort port from which the message come in
 	 * @param msg      the incoming message
 	 */
-	public void handleMessage(String fromPort, Msg msg) {
+	public void handleMessage(Msg msg) {
 		synchronized (m_lastMsgReceived) {
 			m_lastMsgReceived = System.currentTimeMillis();
 		}
@@ -307,7 +297,7 @@ public class InsteonDevice {
 			for (DeviceFeature f : m_features.values()) {
 				if (!f.isStatusFeature()) {
 					logger.debug("----- applying message to feature: {}", f.getName());
-					if (f.handleMessage(msg, fromPort)) {
+					if (f.handleMessage(msg, handler)) {
 						// handled a reply to a query,
 						// mark it as processed
 						logger.trace("handled reply of direct: {}", f);
@@ -320,7 +310,7 @@ public class InsteonDevice {
 			// e.g. when the device was last updated
 			for (DeviceFeature f : m_features.values()) {
 				if (f.isStatusFeature()) {
-					f.handleMessage(msg, fromPort);
+					f.handleMessage(msg, handler);
 				}
 			}
 		}
@@ -517,7 +507,8 @@ public class InsteonDevice {
 	}
 
 	private void writeMessage(Msg m) throws IOException {
-		m_driver.writeMessage(getPort(), m);
+		// TODO: JWP Reimplement if needed
+		m_driver.writeMessage(handler.getPort(), m);
 	}
 
 	private void instantiateFeatures(DeviceType dt) {

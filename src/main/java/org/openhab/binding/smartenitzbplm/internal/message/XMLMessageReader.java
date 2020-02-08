@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -50,7 +51,7 @@ public class XMLMessageReader {
      * @throws ParsingException something wrong with the file format
      * @throws FieldException something wrong with the field definition
      */
-    public static HashMap<String, Msg> s_readMessageDefinitions(InputStream input)
+    public static HashMap<String, Msg> readMessageDefinitions(InputStream input)
             throws IOException, ParsingException, FieldException {
         HashMap<String, Msg> messageMap = new HashMap<String, Msg>();
         try {
@@ -68,7 +69,8 @@ public class XMLMessageReader {
                 Node node = nodes.item(i);
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     if (node.getNodeName().equals("msg")) {
-                        Pair<String, Msg> msgDef = s_readMessageDefinition((Element) node);
+                        Pair<String, Msg> msgDef = readMessageDefinition((Element) node);
+                        msgDef.getValue().setName(msgDef.getKey());
                         messageMap.put(msgDef.getKey(), msgDef.getValue());
                     }
                 }
@@ -81,10 +83,10 @@ public class XMLMessageReader {
         return messageMap;
     }
 
-    private static Pair<String, Msg> s_readMessageDefinition(Element msg) throws FieldException, ParsingException {
+    private static Pair<String, Msg> readMessageDefinition(Element msg) throws FieldException, ParsingException {
         int length = 0;
         int hlength = 0;
-        LinkedHashMap<Field, Object> fieldMap = new LinkedHashMap<Field, Object>();
+        Map<Field, Object> fieldMap = new LinkedHashMap<Field, Object>();
         String dir = msg.getAttribute("direction");
         String name = msg.getAttribute("name");
         Msg.Direction direction = Msg.Direction.s_getDirectionFromString(dir);
@@ -124,7 +126,7 @@ public class XMLMessageReader {
         return new Pair<String, Msg>(name, s_createMsg(fieldMap, length, hlength, direction));
     }
 
-    private static int s_readHeaderElement(Element header, LinkedHashMap<Field, Object> fields)
+    private static int s_readHeaderElement(Element header, Map<Field, Object> fields)
             throws ParsingException {
         int offset = 0;
         int headerLen = Integer.parseInt(header.getAttribute("length"));
@@ -159,7 +161,7 @@ public class XMLMessageReader {
         return pair;
     }
 
-    private static Msg s_createMsg(HashMap<Field, Object> values, int length, int headerLength, Msg.Direction dir)
+    private static Msg s_createMsg(Map<Field, Object> values, int length, int headerLength, Msg.Direction dir)
             throws FieldException {
         Msg msg = new Msg(headerLength, new byte[length], length, dir);
         for (Entry<Field, Object> e : values.entrySet()) {
@@ -172,14 +174,5 @@ public class XMLMessageReader {
         return msg;
     }
 
-    public static void main(String[] args) throws Exception {
-        // for local testing
-        File f = new File(System.getProperty("user.home")
-                + "/workspace/openhab/bundles/binding/org.openhab.binding.insteonplm/src/main/resources/msg_definitions.xml");
-        InputStream s = new FileInputStream(f);
-        HashMap<String, Msg> msgs = XMLMessageReader.s_readMessageDefinitions(s);
-        for (Msg msg : msgs.values()) {
-            System.out.println(msg);
-        }
-    }
+   
 }

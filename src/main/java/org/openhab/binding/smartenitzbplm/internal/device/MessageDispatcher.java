@@ -14,6 +14,7 @@ package org.openhab.binding.smartenitzbplm.internal.device;
 
 import java.util.HashMap;
 
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
@@ -49,10 +50,10 @@ public abstract class MessageDispatcher {
      * Generic handling of incoming ALL LINK messages
      * 
      * @param msg the message received
-     * @param port the port on which the message was received
+     * @param handler2 the port on which the message was received
      * @return true if the message was handled by this function
      */
-    protected boolean handleAllLinkMessage(Msg msg, String port) {
+    protected boolean handleAllLinkMessage(Msg msg, ZBPLMHandler handler) {
         if (!msg.isAllLink()) {
             return false;
         }
@@ -82,7 +83,7 @@ public abstract class MessageDispatcher {
                     logger.debug("{}:{}->{} cmd1:{} group {}/{}", m_feature.getDevice().getAddress(),
                             m_feature.getName(), h.getClass().getSimpleName(), Utils.getHexByte(cmd1), group,
                             h.getGroup());
-                    h.handleMessage(group, cmd1, msg, m_feature, port);
+                    h.handleMessage(group, cmd1, msg, m_feature, handler);
                 } else {
                     logger.debug("message ignored because matches group: {} matches filter: {}",
                                  h.matchesGroup(group), h.matches(msg));
@@ -112,11 +113,11 @@ public abstract class MessageDispatcher {
      * Dispatches message
      * 
      * @param msg Message to dispatch
-     * @param port Insteon device ('/dev/usb') from which the message came
+     * @param handler2 Insteon device ('/dev/usb') from which the message came
      * @return true if this message was found to be a reply to a direct message,
      *         and was claimed by one of the handlers
      */
-    public abstract boolean dispatch(Msg msg, String port);
+    public abstract boolean dispatch(Msg msg, ZBPLMHandler handler);
 
     //
     //
@@ -130,7 +131,7 @@ public abstract class MessageDispatcher {
         }
 
         @Override
-        public boolean dispatch(Msg msg, String port) {
+        public boolean dispatch(Msg msg, ZBPLMHandler handler) {
             byte cmd = 0x00;
             byte cmd1 = 0x00;
             boolean isConsumed = false;
@@ -147,7 +148,7 @@ public abstract class MessageDispatcher {
                 // in response to a direct status query message
                 return false;
             }
-            if (handleAllLinkMessage(msg, port)) {
+            if (handleAllLinkMessage(msg, handler)) {
                 return false;
             }
             if (msg.isAckOfDirect()) {
@@ -177,7 +178,7 @@ public abstract class MessageDispatcher {
                         logger.debug("{}:{}->{} DIRECT", m_feature.getDevice().getAddress(), m_feature.getName(),
                                 h.getClass().getSimpleName());
                     }
-                    h.handleMessage(-1, cmd1, msg, m_feature, port);
+                    h.handleMessage(-1, cmd1, msg, m_feature, handler);
                 }
             }
             if (isConsumed) {
@@ -195,7 +196,7 @@ public abstract class MessageDispatcher {
         }
 
         @Override
-        public boolean dispatch(Msg msg, String port) {
+        public boolean dispatch(Msg msg, ZBPLMHandler handler) {
             byte cmd = 0x00;
             byte cmd1 = 0x00;
             boolean isConsumed = false;
@@ -212,7 +213,7 @@ public abstract class MessageDispatcher {
                 // in response to a direct status query message
                 return false;
             }
-            if (handleAllLinkMessage(msg, port)) {
+            if (handleAllLinkMessage(msg, handler)) {
                 return false;
             }
             if (msg.isAckOfDirect()) {
@@ -243,7 +244,7 @@ public abstract class MessageDispatcher {
                             logger.debug("{}:{}->{} DIRECT", f.getDevice().getAddress(), f.getName(),
                                     h.getClass().getSimpleName());
                         }
-                        h.handleMessage(-1, cmd1, msg, f, port);
+                        h.handleMessage(-1, cmd1, msg, f, handler);
                     }
 
                 }
@@ -263,13 +264,13 @@ public abstract class MessageDispatcher {
         }
 
         @Override
-        public boolean dispatch(Msg msg, String port) {
+        public boolean dispatch(Msg msg, ZBPLMHandler handler) {
             if (msg.isAllLinkCleanupAckOrNack()) {
                 // Had cases when a KeypadLinc would send an ALL_LINK_CLEANUP_ACK
                 // in response to a direct status query message
                 return false;
             }
-            if (handleAllLinkMessage(msg, port)) {
+            if (handleAllLinkMessage(msg, handler)) {
                 return false;
             }
             if (msg.isAckOfDirect()) {
@@ -289,10 +290,10 @@ public abstract class MessageDispatcher {
         }
 
         @Override
-        public boolean dispatch(Msg msg, String port) {
+        public boolean dispatch(Msg msg, ZBPLMHandler handler) {
             byte cmd1 = 0x00;
             try {
-                if (handleAllLinkMessage(msg, port)) {
+                if (handleAllLinkMessage(msg, handler)) {
                     return false;
                 }
                 if (msg.isAllLinkCleanupAckOrNack()) {
@@ -314,7 +315,7 @@ public abstract class MessageDispatcher {
             if (h.matches(msg)) {
                 logger.trace("{}:{}->{} {}", m_feature.getDevice().getAddress(), m_feature.getName(),
                         h.getClass().getSimpleName(), msg);
-                h.handleMessage(-1, cmd1, msg, m_feature, port);
+                h.handleMessage(-1, cmd1, msg, m_feature, handler);
             }
             return isConsumed;
         }
@@ -326,7 +327,7 @@ public abstract class MessageDispatcher {
         }
 
         @Override
-        public boolean dispatch(Msg msg, String port) {
+        public boolean dispatch(Msg msg, ZBPLMHandler handler) {
             try {
                 byte rawX10 = msg.getByte("rawX10");
                 int cmd = (rawX10 & 0x0f);
@@ -337,7 +338,7 @@ public abstract class MessageDispatcher {
                 logger.debug("{}:{}->{} {}", m_feature.getDevice().getAddress(), m_feature.getName(),
                         h.getClass().getSimpleName(), msg);
                 if (h.matches(msg)) {
-                    h.handleMessage(-1, (byte) cmd, msg, m_feature, port);
+                    h.handleMessage(-1, (byte) cmd, msg, m_feature, handler);
                 }
             } catch (FieldException e) {
                 logger.error("error parsing {}: ", msg, e);
@@ -352,12 +353,12 @@ public abstract class MessageDispatcher {
         }
 
         @Override
-        public boolean dispatch(Msg msg, String port) {
+        public boolean dispatch(Msg msg, ZBPLMHandler handler) {
             MessageHandler h = m_feature.getDefaultMsgHandler();
             if (h.matches(msg)) {
                 logger.trace("{}:{}->{} {}", m_feature.getDevice().getAddress(), m_feature.getName(),
                         h.getClass().getSimpleName(), msg);
-                h.handleMessage(-1, (byte) 0x01, msg, m_feature, port);
+                h.handleMessage(-1, (byte) 0x01, msg, m_feature, handler);
             }
             return false;
         }
@@ -372,7 +373,7 @@ public abstract class MessageDispatcher {
         }
 
         @Override
-        public boolean dispatch(Msg msg, String port) {
+        public boolean dispatch(Msg msg, ZBPLMHandler handler) {
             return false;
         }
     }

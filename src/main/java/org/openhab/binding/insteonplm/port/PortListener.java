@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
@@ -13,11 +14,11 @@ import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Driver;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.DriverListener;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Poller;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
-import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,15 +42,15 @@ public class PortListener implements MsgListener, DriverListener {
      * {@inheritDoc}
      */
     @Override
-    public void msg(Msg msg, String fromPort) {
+    public void msg(Msg msg, ZBPLMHandler handler) {
         if (msg.isEcho() || msg.isPureNack()) {
             return;
         }
         logger.debug("got msg: {}", msg);
         if (msg.isX10()) {
-            handleX10Message(msg, fromPort);
+            handleX10Message(msg, handler);
         } else {
-            handleInsteonMessage(msg, fromPort);
+            handleInsteonMessage(msg, handler);
         }
 
     }
@@ -59,7 +60,7 @@ public class PortListener implements MsgListener, DriverListener {
      */
     @Override
     public void driverCompletelyInitialized() {
-        HashMap<InsteonAddress, ModemDBEntry> dbes = driver.lockModemDBEntries();
+        Map<InsteonAddress, ModemDBEntry> dbes = driver.lockModemDBEntries();
         logger.info("modem database has {} entries!", dbes.size());
         if (dbes.isEmpty()) {
             logger.warn("the modem link database is empty!");
@@ -94,7 +95,7 @@ public class PortListener implements MsgListener, DriverListener {
         driver.unlockModemDBEntries();
     }
 
-    public String getLinkInfo(HashMap<InsteonAddress, ModemDBEntry> dbes, InsteonAddress a) {
+    public String getLinkInfo(Map<InsteonAddress, ModemDBEntry> dbes, InsteonAddress a) {
         ModemDBEntry dbe = dbes.get(a);
         ArrayList<Byte> controls = dbe.getControls();
         ArrayList<Byte> responds = dbe.getRespondsTo();
@@ -135,7 +136,7 @@ public class PortListener implements MsgListener, DriverListener {
         return buf.toString();
     }
 
-    private void handleInsteonMessage(Msg msg, String fromPort) {
+    private void handleInsteonMessage(Msg msg, ZBPLMHandler handler) {
         InsteonAddress toAddr = msg.getAddr("toAddress");
         if (!msg.isBroadcast() && !driver.isMsgForUs(toAddr)) {
             // not for one of our modems, do not process
@@ -146,17 +147,17 @@ public class PortListener implements MsgListener, DriverListener {
             logger.debug("invalid fromAddress, ignoring msg {}", msg);
             return;
         }
-        handleMessage(fromPort, fromAddr, msg);
+        handleMessage(handler, fromAddr, msg);
     }
 
-    private void handleX10Message(Msg msg, String fromPort) {
+    private void handleX10Message(Msg msg, ZBPLMHandler handler) {
         try {
             int x10Flag = msg.getByte("X10Flag") & 0xff;
             int rawX10 = msg.getByte("rawX10") & 0xff;
             if (x10Flag == 0x80) { // actual command
                 if (x10HouseUnit != -1) {
                     InsteonAddress fromAddr = new InsteonAddress((byte) x10HouseUnit);
-                    handleMessage(fromPort, fromAddr, msg);
+                    handleMessage(handler, fromAddr, msg);
                 }
             } else if (x10Flag == 0) {
                 // what unit the next cmd will apply to
@@ -168,12 +169,13 @@ public class PortListener implements MsgListener, DriverListener {
         }
     }
 
-    private void handleMessage(String fromPort, InsteonAddress fromAddr, Msg msg) {
+    private void handleMessage(ZBPLMHandler handler, InsteonAddress fromAddr, Msg msg) {
+    	// TODO: JWP figure ot how to get device.. or delete
         InsteonDevice dev = null;//getDevice(fromAddr);
         if (dev == null) {
             logger.debug("dropping message from unknown device with address {}", fromAddr);
         } else {
-            dev.handleMessage(fromPort, msg);
+            dev.handleMessage(msg);
         }
     }
 }

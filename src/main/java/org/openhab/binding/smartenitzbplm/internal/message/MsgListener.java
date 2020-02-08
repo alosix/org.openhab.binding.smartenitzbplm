@@ -12,6 +12,9 @@
  */
 package org.openhab.binding.smartenitzbplm.internal.message;
 
+import org.eclipse.smarthome.core.thing.Bridge;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
+
 /**
  * Interface to receive Insteon messages from the modem.
  *
@@ -25,5 +28,5 @@ public interface MsgListener {
      * @param msg the message received
      * @param fromPort on which port (e.g. '/dev/ttyUSB0') this message arrived
      */
-    public abstract void msg(Msg msg, String fromPort);
+    public abstract void msg(Msg msg, ZBPLMHandler handler);
 }

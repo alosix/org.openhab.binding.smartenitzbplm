@@ -28,7 +28,7 @@ public class SmartenItZBPLMBindingConstants {
 
     public static final ThingTypeUID THING_TYPE_PLM_COORDINATOR = new ThingTypeUID(BINDING_ID, "coordinator_zbplm");
     
-    public static final ThingTypeUID THING_LAMPLINC = new ThingTypeUID(BINDING_ID, "lamplinc");
+    public static final ThingTypeUID THING_TYPE_LAMPLINC = new ThingTypeUID(BINDING_ID, "lamplinc");
 
     // List of all Channel ids
     public static final String CHANNEL_1 = "channel1";
@@ -40,8 +40,18 @@ public class SmartenItZBPLMBindingConstants {
 	public static final String ZBPLM_FLOWCONTROL =  "zbplm_flowcontrol";
 
 	
+	public static final String INSTEON_ADDRESS = "insteon_address";
+	
 	 // List of configuration values for flow control
     public static final Integer FLOWCONTROL_CONFIG_NONE = Integer.valueOf(0);
     public static final Integer FLOWCONTROL_CONFIG_HARDWARE_CTSRTS = Integer.valueOf(1);
     public static final Integer FLOWCONTROL_CONFIG_SOFTWARE_XONXOFF = Integer.valueOf(2);
+
+
+    // Message Constants
+    public static final String GET_IM_INFO_REPLY = "GetIMInfoReply";
+	public static final String FIRMWARE_VERSION = "FirmwareVersion";
+	public static final String DEVICE_SUB_CATEGORY = "DeviceSubCategory";
+	public static final String DEVICE_CATEGORY = "DeviceCategory";
+	public static final String IM_ADDRESS = "IMAddress";
 }
