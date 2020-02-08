@@ -76,7 +76,7 @@ public class MsgFactory {
             logger.trace("got pure nack!");
             removeFromBuffer(1);
             try {
-                Msg m = Msg.s_makeMessage("PureNACK");
+                Msg m = Msg.makeMessage("PureNACK");
                 return m;
             } catch (IOException e) {
                 return null;
@@ -93,8 +93,8 @@ public class MsgFactory {
         boolean isExtended = false;
         if (m_end > 1) {
             // we have some data, but do we have enough to read the entire header?
-            int headerLength = Msg.s_getHeaderLength(m_buf[1]);
-            isExtended = Msg.s_isExtended(m_buf, m_end, headerLength);
+            int headerLength = Msg.getHeaderLength(m_buf[1]);
+            isExtended = Msg.isExtended(m_buf, m_end, headerLength);
             logger.trace("header length expected: {} extended: {}", headerLength, isExtended);
             if (headerLength < 0) {
                 removeFromBuffer(1); // get rid of the leading 0x02 so draining works
@@ -102,7 +102,7 @@ public class MsgFactory {
             } else if (headerLength >= 2) {
                 if (m_end >= headerLength) {
                     // only when the header is complete do we know that isExtended is correct!
-                    msgLen = Msg.s_getMessageLength(m_buf[1], isExtended);
+                    msgLen = Msg.getMessageLength(m_buf[1], isExtended);
                     if (msgLen < 0) {
                         // Cannot make sense out of the combined command code & isExtended flag.
                         removeFromBuffer(1);

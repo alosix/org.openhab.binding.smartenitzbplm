@@ -24,6 +24,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceType.FeatureGroup;
+import org.openhab.binding.smartenitzbplm.thing.discovery.ZBPLMDiscoveryService;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,12 +41,13 @@ import org.xml.sax.SAXException;
  * @author Bernd Pfrommer
  * @since 1.5.0
  */
-@Component
+@Component(immediate = true, service = DeviceTypeLoader.class, configurationPid = "devicetypeloader.zbplm")
 public class DeviceTypeLoader {
     private static final Logger logger = LoggerFactory.getLogger(DeviceTypeLoader.class);
     private HashMap<String, DeviceType> m_deviceTypes = new HashMap<String, DeviceType>();
     
     public DeviceTypeLoader() {
+    	logger.info("DevicetypeLoader started");
     	 InputStream input = DeviceTypeLoader.class.getResourceAsStream("/device_types.xml");
          try {
              loadDeviceTypesXML(input);

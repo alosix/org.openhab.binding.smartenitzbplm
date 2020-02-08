@@ -26,6 +26,9 @@ import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,9 +72,10 @@ public class Port {
     private Thread writeThread = null;
     private boolean running = false;
     private boolean modemDBComplete = false;
-    private MsgFactory m_msgFactory = new MsgFactory();
+    private MsgFactory msgFactory = null;
     private Driver driver = null;
     private ModemDBBuilder modemDBBuilder = null;
+    private DeviceTypeLoader deviceTypeLoader = null;
     private ArrayList<MsgListener> listeners = new ArrayList<MsgListener>();
     private LinkedBlockingQueue<Msg> writeQueue = new LinkedBlockingQueue<Msg>();
 
@@ -81,15 +85,18 @@ public class Port {
      * @param devName the name of the port, i.e. '/dev/insteon'
      * @param baudRate 
      * @param driver The Driver object that manages this port
+     * @param deviceTypeLoader 
      */
-    public Port(Driver driver,  IOStream ioStream) {
+    public Port(Driver driver,  IOStream ioStream, MsgFactory msgFactory, DeviceTypeLoader deviceTypeLoader) {
         this.driver = driver;
         this.modem = new Modem();
         this.ioStream = ioStream;
+        this.msgFactory = msgFactory;
         addListener(modem);
         this.reader = new IOStreamReader();
         this.writer = new IOStreamWriter();
         this.modemDBBuilder = new ModemDBBuilder(this);
+        this.deviceTypeLoader = deviceTypeLoader;
     }
 
     public synchronized boolean isModemDBComplete() {
@@ -116,6 +123,7 @@ public class Port {
         modemDBBuilder.setRetryTimeout(timeout);
     }
 
+    @Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)
     public void addListener(MsgListener l) {
         synchronized (listeners) {
             if (!listeners.contains(l)) {
@@ -276,7 +284,7 @@ public class Port {
                     if (m_dropRandomBytes && rng.nextInt(100) < 20) {
                         len = dropBytes(buffer, len);
                     }
-                    m_msgFactory.addData(buffer, len);
+                    msgFactory.addData(buffer, len);
                     processMessages();
                 }
             } catch (InterruptedException e) {
@@ -288,7 +296,7 @@ public class Port {
         private void processMessages() {
             try {
                 // must call processData() until we get a null pointer back
-                for (Msg m = m_msgFactory.processData(); m != null; m = m_msgFactory.processData()) {
+                for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
                     toAllListeners(m);
                     notifyWriter(m);
                 }
@@ -449,14 +457,14 @@ public class Port {
      * Class to get info about the modem
      */
     class Modem implements MsgListener {
-        private InsteonDevice m_device = null;
+        private InsteonDevice device = null;
 
         InsteonAddress getAddress() {
-            return (m_device == null) ? new InsteonAddress() : (m_device.getAddress());
+            return (device == null) ? new InsteonAddress() : (device.getAddress());
         }
 
         InsteonDevice getDevice() {
-            return m_device;
+            return device;
         }
 
         @Override
@@ -469,17 +477,17 @@ public class Port {
                     // add the modem to the device list
                     InsteonAddress a = new InsteonAddress(msg.getAddress("IMAddress"));
                     String prodKey = "0x000045";
-                    DeviceType dt = null;//DeviceTypeLoader.s_instance().getDeviceType(prodKey);a
+                    DeviceType dt = deviceTypeLoader.getDeviceType(prodKey);
                     if (dt == null) {
                         logger.error("unknown modem product key: {} for modem: {}.", prodKey, a);
                     } else {
-                        m_device = InsteonDevice.s_makeDevice(dt);
-                        m_device.setAddress(a);
-                        m_device.setProductKey(prodKey);
-                        m_device.setDriver(driver);
-                        m_device.setIsModem(true);
-                        m_device.addPort(fromPort);
-                        logger.debug("found modem {} in device_types: {}", a, m_device.toString());
+                        device = InsteonDevice.s_makeDevice(dt);
+                        device.setAddress(a);
+                        device.setProductKey(prodKey);
+                        device.setDriver(driver);
+                        device.setIsModem(true);
+                        device.addPort(fromPort);
+                        logger.debug("found modem {} in device_types: {}", a, device.toString());
                         modemDBBuilder.updateModemDB(a, Port.this, null);
                     }
                     // can unsubscribe now
@@ -492,7 +500,7 @@ public class Port {
 
         public void initialize() {
             try {
-                Msg m = Msg.s_makeMessage("GetIMInfo");
+                Msg m = Msg.makeMessage("GetIMInfo");
                 writeMessage(m);
             } catch (IOException e) {
                 logger.error("modem init failed!", e);

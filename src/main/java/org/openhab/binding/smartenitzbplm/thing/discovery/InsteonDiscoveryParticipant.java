@@ -1,11 +1,11 @@
-package org.openhab.binding.smartenitzbplm.internal.discovery;
+package org.openhab.binding.smartenitzbplm.thing.discovery;
 
 import java.util.Set;
 
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 
 
-public interface ZBPLMDiscoveryParticipant {
+public interface InsteonDiscoveryParticipant {
 
 	/**
      * Defines the list of thing types that this participant can identify

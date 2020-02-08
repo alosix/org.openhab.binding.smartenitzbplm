@@ -2,7 +2,7 @@
 <features name="org.openhab.binding.smartenitzbplm-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.4.0">
     <repository>mvn:org.openhab.core.features.karaf/org.openhab.core.features.karaf.openhab-core/${ohc.version}/xml/features</repository>
 
-    <feature name="openhab-binding-smartenitzbplm" description="SmartenItZBPLM Binding" version="${project.version}">
+    <feature name="openhab-binding-smartenitzbplm" description="SmartenIt ZBPLM Binding" version="${project.version}">
         <feature>openhab-runtime-base</feature>
         <bundle start-level="80">mvn:org.openhab.addons.bundles/org.openhab.binding.smartenitzbplm/${project.version}</bundle>
     	<bundle dependency="true">mvn:commons-collections/commons-collections/3.2.2</bundle>

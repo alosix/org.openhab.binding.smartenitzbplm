@@ -27,53 +27,53 @@ import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
  * @since 1.6.0
  */
 public class ModemDBEntry {
-    private InsteonAddress m_address = null;
-    private Port m_port = null;
-    private ArrayList<Msg> m_linkRecords = new ArrayList<Msg>();
-    private ArrayList<Byte> m_controls = new ArrayList<Byte>();
-    private ArrayList<Byte> m_respondsTo = new ArrayList<Byte>();
+    private InsteonAddress address = null;
+    private Port port = null;
+    private ArrayList<Msg> linkRecords = new ArrayList<Msg>();
+    private ArrayList<Byte> controls = new ArrayList<Byte>();
+    private ArrayList<Byte> respondsTo = new ArrayList<Byte>();
 
     public ModemDBEntry(InsteonAddress aAddr) {
-        m_address = aAddr;
+        address = aAddr;
     }
 
     public ArrayList<Msg> getLinkRecords() {
-        return m_linkRecords;
+        return linkRecords;
     }
 
     public void addLinkRecord(Msg m) {
-        m_linkRecords.add(m);
+        linkRecords.add(m);
     }
 
     public void addControls(byte c) {
-        m_controls.add(c);
+        controls.add(c);
     }
 
     public ArrayList<Byte> getControls() {
-        return m_controls;
+        return controls;
     }
 
     public void addRespondsTo(byte r) {
-        m_respondsTo.add(r);
+        respondsTo.add(r);
     }
 
     public ArrayList<Byte> getRespondsTo() {
-        return m_respondsTo;
+        return respondsTo;
     }
 
     public void setPort(Port p) {
-        m_port = p;
+        port = p;
     }
 
     public Port getPort() {
-        return m_port;
+        return port;
     }
 
     @Override
     public String toString() {
-        String s = "addr:" + m_address + "|controls:[" + toGroupString(m_controls) + "]|responds_to:["
-                + toGroupString(m_respondsTo) + "]|link_recors";
-        for (Msg m : m_linkRecords) {
+        String s = "addr:" + address + "|controls:[" + toGroupString(controls) + "]|responds_to:["
+                + toGroupString(respondsTo) + "]|link_recors";
+        for (Msg m : linkRecords) {
             s += ":(" + m + ")";
         }
         return s;

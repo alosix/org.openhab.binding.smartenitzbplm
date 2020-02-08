@@ -1,4 +1,4 @@
-package org.openhab.binding.smartenitzbplm.internal.discovery;
+package org.openhab.binding.smartenitzbplm.thing.discovery;
 
 import java.util.Map;
 import java.util.Set;
@@ -6,6 +6,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryService;
+import org.eclipse.smarthome.core.thing.binding.ThingHandler;
+import org.eclipse.smarthome.core.thing.binding.ThingHandlerService;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -17,18 +19,18 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(immediate = true, service = DiscoveryService.class, configurationPid = "discovery.zbplm")
-public class ZBPLMDiscoveryService extends AbstractDiscoveryService {
+@Component(immediate = true, service = ZBPLMDiscoveryService.class, configurationPid = "discovery.zbplm")
+public class ZBPLMDiscoveryService extends AbstractDiscoveryService  {
 	private static final Logger logger = LoggerFactory.getLogger(ZBPLMDiscoveryService.class);
 
 	/**
-	 * Default search time
+	 * Default search time (2m)
 	 */
-	private final static int SEARCH_TIME = 60;
+	private final static int SEARCH_TIME = 120;
 
 	private final Set<ZBPLMHandler> handlers = new CopyOnWriteArraySet<>();
 
-	private final Set<ZBPLMDiscoveryParticipant> participants = new CopyOnWriteArraySet<>();
+	private final Set<InsteonDiscoveryParticipant> participants = new CopyOnWriteArraySet<>();
 
 	public ZBPLMDiscoveryService() throws IllegalArgumentException {
 		super(SEARCH_TIME);
@@ -37,18 +39,18 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService {
 	}
 
 	@Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)
-	protected void addZBPLMDiscoveryParticipant(ZBPLMDiscoveryParticipant participant) {
-		logger.info("Adding discovery participant:" + participant.toString());
+	protected void addZBPLMDiscoveryParticipant(InsteonDiscoveryParticipant participant) {
+		logger.info("**************************Adding discovery participant:" + participant.toString());
 		participants.add(participant);
 	}
 
-	protected void removeZBPLMDiscoveryParticipant(ZBPLMDiscoveryParticipant participant) {
+	protected void removeZBPLMDiscoveryParticipant(InsteonDiscoveryParticipant participant) {
 		participants.remove(participant);
 	}
 
 	@Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)
 	protected void addZBPLMHandler(ZBPLMHandler handler) {
-		logger.info("Adding handler:" + handler);
+		logger.info("*************************Adding handler:" + handler);
 		handlers.add(handler);
 	}
 
@@ -73,7 +75,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService {
 	@Override
 	@Deactivate
 	public void deactivate() {
-		logger.debug("Deactivating Bluetooth discovery service");
+		logger.debug("Deactivating SmartenIt discovery service");
 	}
 
 	@Override
@@ -85,5 +87,6 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService {
 		}
 
 	}
+	
 
 }

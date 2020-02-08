@@ -15,13 +15,11 @@ package org.openhab.binding.smartenitzbplm.internal.device;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.eclipse.smarthome.core.events.Event;
-import org.eclipse.smarthome.core.events.EventFactory;
 import org.eclipse.smarthome.core.events.EventPublisher;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.PercentType;
 import org.eclipse.smarthome.core.types.State;
-import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMHandler;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +45,7 @@ public class DeviceFeatureListener {
     private HashMap<String, String> m_parameters = new HashMap<String, String>();
     private HashMap<Class<?>, State> m_state = new HashMap<Class<?>, State>();
     private ArrayList<InsteonAddress> m_relatedDevices = new ArrayList<InsteonAddress>();
-    private SmartenItZBPLMHandler m_binding = null;
+    private ZBPLMHandler m_binding = null;
     private final static int TIME_DELAY_POLL_RELATED_MSEC = 5000;
 
     /**
@@ -56,7 +54,7 @@ public class DeviceFeatureListener {
      * @param item name of the item that is listening
      * @param eventPublisher the publisher to use for publishing on the openhab bus
      */
-    public DeviceFeatureListener(SmartenItZBPLMHandler binding, String item, EventPublisher eventPublisher) {
+    public DeviceFeatureListener(ZBPLMHandler binding, String item, EventPublisher eventPublisher) {
         m_binding = binding;
         m_itemName = item;
         m_eventPublisher = eventPublisher;

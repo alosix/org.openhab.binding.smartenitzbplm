@@ -126,8 +126,8 @@ public class Msg {
         } catch (FieldException e) {
             logger.error("got field exception while parsing xml insteon message definitions", e);
         }
-        s_buildHeaderMap();
-        s_buildLengthMap();
+        buildHeaderMap();
+        buildLengthMap();
     }
 
     //
@@ -530,7 +530,7 @@ public class Msg {
         if (m_buf == null || m_buf.length < 2) {
             return null;
         }
-        Msg template = s_replyMap.get(s_cmdToKey(m_buf[1], isExtended));
+        Msg template = s_replyMap.get(cmdToKey(m_buf[1], isExtended));
         if (template == null) {
             return null; // cannot find lookup map
         }
@@ -549,7 +549,7 @@ public class Msg {
      * @param cmd the insteon command received in the message
      * @return the length of the header to expect
      */
-    public static int s_getHeaderLength(byte cmd) {
+    public static int getHeaderLength(byte cmd) {
         Integer len = s_headerMap.get(new Integer(cmd));
         if (len == null) {
             return (-1); // not found
@@ -564,8 +564,8 @@ public class Msg {
      * @param isExtended flag indicating if it is an extended message
      * @return message length, or -1 if length cannot be determined
      */
-    public static int s_getMessageLength(byte b, boolean isExtended) {
-        int key = s_cmdToKey(b, isExtended);
+    public static int getMessageLength(byte b, boolean isExtended) {
+        int key = cmdToKey(b, isExtended);
         Msg msg = s_replyMap.get(key);
         if (msg == null) {
             return -1;
@@ -583,7 +583,7 @@ public class Msg {
      * @return true if it is definitely extended, false if cannot be
      *         determined or if it is a standard message
      */
-    public static boolean s_isExtended(byte[] buf, int len, int headerLength) {
+    public static boolean isExtended(byte[] buf, int len, int headerLength) {
         if (headerLength <= 2) {
             return false;
         } // extended messages are longer
@@ -602,7 +602,7 @@ public class Msg {
      * @return reference to message created
      * @throws IOException if there is no such message type known
      */
-    public static Msg s_makeMessage(String type) throws IOException {
+    public static Msg makeMessage(String type) throws IOException {
         Msg m = s_msgMap.get(type);
         if (m == null) {
             throw new IOException("unknown message type: " + type);
@@ -610,11 +610,11 @@ public class Msg {
         return new Msg(m);
     }
 
-    private static int s_cmdToKey(byte cmd, boolean isExtended) {
+    private static int cmdToKey(byte cmd, boolean isExtended) {
         return (cmd + (isExtended ? 256 : 0));
     }
 
-    private static void s_buildHeaderMap() {
+    private static void buildHeaderMap() {
         for (Msg m : s_msgMap.values()) {
             if (m.getDirection() == Direction.FROM_MODEM) {
                 s_headerMap.put(new Integer(m.getCommandNumber()), m.getHeaderLength());
@@ -622,10 +622,10 @@ public class Msg {
         }
     }
 
-    private static void s_buildLengthMap() {
+    private static void buildLengthMap() {
         for (Msg m : s_msgMap.values()) {
             if (m.getDirection() == Direction.FROM_MODEM) {
-                Integer key = new Integer(s_cmdToKey(m.getCommandNumber(), m.isExtended()));
+                Integer key = new Integer(cmdToKey(m.getCommandNumber(), m.isExtended()));
                 s_replyMap.put(key, m);
             }
         }

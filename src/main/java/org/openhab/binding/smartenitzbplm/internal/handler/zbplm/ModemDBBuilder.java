@@ -90,7 +90,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
 
     private void getFirstLinkRecord() {
         try {
-            port.writeMessage(Msg.s_makeMessage("GetFirstALLLinkRecord"));
+            port.writeMessage(Msg.makeMessage("GetFirstALLLinkRecord"));
         } catch (IOException e) {
             logger.error("error sending link record query ", e);
         }
@@ -119,7 +119,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
             } else if (msg.getByte("Cmd") == 0x57) {
                 // we got the link record response
                 updateModemDB(msg.getAddress("LinkAddr"), port, msg);
-                port.writeMessage(Msg.s_makeMessage("GetNextALLLinkRecord"));
+                port.writeMessage(Msg.makeMessage("GetNextALLLinkRecord"));
             }
         } catch (FieldException e) {
             logger.debug("bad field handling link records {}", e);
@@ -146,6 +146,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
                 for (Msg m : lrs) {
                     int recordFlags = m.getByte("RecordFlags") & 0xff;
                     String ms = ((recordFlags & (0x1 << 6)) != 0) ? "CTRL" : "RESP";
+                    logger.info("Msg:" + m.toString());
                     logger.info("MDB {}: {} group: {} data1: {} data2: {} data3: {}", db.getKey(), ms,
                             toHex(m.getByte("ALLLinkGroup")), toHex(m.getByte("LinkData1")),
                             toHex(m.getByte("LinkData2")), toHex(m.getByte("LinkData2")));

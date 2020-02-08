@@ -352,7 +352,7 @@ public class InsteonDevice {
 	 * @throws IOException
 	 */
 	public Msg makeStandardMessage(byte flags, byte cmd1, byte cmd2, int group) throws FieldException, IOException {
-		Msg m = Msg.s_makeMessage("SendStandardMessage");
+		Msg m = Msg.makeMessage("SendStandardMessage");
 		InsteonAddress addr = null;
 		if (group != -1) {
 			flags |= 0xc0; // mark message as group message
@@ -369,7 +369,7 @@ public class InsteonDevice {
 	}
 
 	public Msg makeX10Message(byte rawX10, byte X10Flag) throws FieldException, IOException {
-		Msg m = Msg.s_makeMessage("SendX10Message");
+		Msg m = Msg.makeMessage("SendX10Message");
 		m.setByte("rawX10", rawX10);
 		m.setByte("X10Flag", X10Flag);
 		m.setQuietTime(300L);
@@ -402,7 +402,7 @@ public class InsteonDevice {
 	 * @throws IOException
 	 */
 	public Msg makeExtendedMessage(byte flags, byte cmd1, byte cmd2, byte[] data) throws FieldException, IOException {
-		Msg m = Msg.s_makeMessage("SendExtendedMessage");
+		Msg m = Msg.makeMessage("SendExtendedMessage");
 		m.setAddress("toAddress", getAddress());
 		m.setByte("messageFlags", (byte) (((flags & 0xff) | 0x10) & 0xff));
 		m.setByte("command1", cmd1);
@@ -425,7 +425,7 @@ public class InsteonDevice {
 	 */
 	public Msg makeExtendedMessageCRC2(byte flags, byte cmd1, byte cmd2, byte[] data)
 			throws FieldException, IOException {
-		Msg m = Msg.s_makeMessage("SendExtendedMessage");
+		Msg m = Msg.makeMessage("SendExtendedMessage");
 		m.setAddress("toAddress", getAddress());
 		m.setByte("messageFlags", (byte) (((flags & 0xff) | 0x10) & 0xff));
 		m.setByte("command1", cmd1);

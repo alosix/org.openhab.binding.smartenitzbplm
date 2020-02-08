@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice.DeviceStatus;
@@ -18,6 +17,7 @@ import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
+import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
