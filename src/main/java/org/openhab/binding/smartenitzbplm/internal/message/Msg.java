@@ -103,6 +103,7 @@ public class Msg {
      * @param m the message to make a copy of
      */
     public Msg(Msg m) {
+    	this.name = m.name;
         m_headerLength = m.m_headerLength;
         m_data = m.m_data.clone();
         // the message definition usually doesn't change, but just to be sure...
@@ -484,6 +485,7 @@ public class Msg {
 
     @Override
     public String toString() {
+    	
         String s = (m_direction == Direction.TO_MODEM) ? "OUT:" : "IN:";
         if (m_definition == null || m_data == null) {
             return toHexString();
@@ -541,6 +543,7 @@ public class Msg {
         }
         Msg msg = new Msg(template.getHeaderLength(), m_buf, msgLen, Direction.FROM_MODEM);
         msg.setDefinition(template.getDefinition());
+        msg.setName(template.getName());
         return (msg);
     }
 

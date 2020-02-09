@@ -23,7 +23,6 @@ import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.types.Command;
 import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMConfiguration;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceType.FeatureGroup;
-import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Driver;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
@@ -50,7 +49,6 @@ public class InsteonDevice {
 
 	private InsteonAddress m_address = new InsteonAddress();
 	private long m_pollInterval = -1L; // in milliseconds
-	private Driver m_driver = null;
 	private HashMap<String, DeviceFeature> m_features = new HashMap<String, DeviceFeature>();
 	private String m_productKey = null;
 	private Long m_lastTimePolled = 0L;
@@ -96,9 +94,6 @@ public class InsteonDevice {
 		return (m_address);
 	}
 
-	public Driver getDriver() {
-		return m_driver;
-	}
 
 	public boolean hasValidPorts() {
 		return (handler != null);
@@ -172,9 +167,6 @@ public class InsteonDevice {
 		m_address = ia;
 	}
 
-	public void setDriver(Driver d) {
-		m_driver = d;
-	}
 
 	public void setIsModem(boolean f) {
 		m_isModem = f;
@@ -231,8 +223,8 @@ public class InsteonDevice {
 	 * @param c       The item configuration
 	 * @param command The actual command to execute
 	 */
-	public void processCommand(Driver driver, SmartenItZBPLMConfiguration c, Command command) {
-		logger.debug("processing command {} features: {}", command, m_features.size());
+//	public void processCommand(Driver driver, SmartenItZBPLMConfiguration c, Command command) {
+		//logger.debug("processing command {} features: {}", command, m_features.size());
 		// TODO: jwp check neeed
 //        synchronized (m_features) {
 //            for (DeviceFeature i : m_features.values()) {
@@ -241,7 +233,7 @@ public class InsteonDevice {
 //                }
 //            }
 //        }
-	}
+	//}
 
 	/**
 	 * Execute poll on this device: create an array of messages, add them to the
@@ -508,7 +500,7 @@ public class InsteonDevice {
 
 	private void writeMessage(Msg m) throws IOException {
 		// TODO: JWP Reimplement if needed
-		m_driver.writeMessage(handler.getPort(), m);
+		handler.getPort().writeMessage(m);
 	}
 
 	private void instantiateFeatures(DeviceType dt) {

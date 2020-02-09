@@ -14,11 +14,13 @@ package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.eclipse.smarthome.core.thing.Bridge;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceType;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
@@ -74,11 +76,13 @@ public class Port {
     private boolean running = false;
     private boolean modemDBComplete = false;
     private MsgFactory msgFactory = null;
-    private Driver driver = null;
     private ModemDBBuilder modemDBBuilder = null;
     private DeviceTypeLoader deviceTypeLoader = null;
-    private ArrayList<MsgListener> listeners = new ArrayList<MsgListener>();
-    private LinkedBlockingQueue<Msg> writeQueue = new LinkedBlockingQueue<Msg>(30);
+    private List<MsgListener> listeners = Collections.synchronizedList(new ArrayList<MsgListener>());
+    
+    private Map<InsteonAddress, ModemDBEntry> modemDBEntries = new ConcurrentHashMap<InsteonAddress, ModemDBEntry>();
+    
+    private LinkedBlockingQueue<Msg> writeQueue = new LinkedBlockingQueue<Msg>();
     private ZBPLMHandler handler;
 
     /**
@@ -91,7 +95,6 @@ public class Port {
      */
     public Port(ZBPLMHandler handler) {
     	this.handler = handler;
-        this.driver = handler.getDriver();
         this.modem = new Modem();
         this.ioStream = handler.getIoStream();
         this.msgFactory = handler.getMsgFactory();
@@ -102,7 +105,7 @@ public class Port {
         this.deviceTypeLoader = handler.getDeviceTypeLoader();
     }
 
-    public synchronized boolean isModemDBComplete() {
+    public boolean isModemDBComplete() {
         return (modemDBComplete);
     }
 
@@ -118,10 +121,7 @@ public class Port {
         return ioStream.getDeviceName();
     }
 
-    public Driver getDriver() {
-        return driver;
-    }
-    
+        
     public ModemDBBuilder getModemDBBuilder() {
 		return modemDBBuilder;
 	}
@@ -152,9 +152,7 @@ public class Port {
      */
     public void clearModemDB() {
         logger.debug("clearing modem db!");
-        Map<InsteonAddress, ModemDBEntry> dbes = getDriver().lockModemDBEntries();
-        dbes.clear();
-        getDriver().unlockModemDBEntries();
+        modemDBEntries.clear();
     }
 
     /**
@@ -166,9 +164,17 @@ public class Port {
             logger.info("port {} already running, not started again", ioStream.toString());
             return true;
         }
-        if (!ioStream.open()) {
+        int retryCount = 0;
+        boolean open = false;
+        while((open= !ioStream.open()) && retryCount < 10) {
+            logger.info("failed to open port {} retrying", ioStream.toString());
+        	try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+			}
+        }
+        if(!open) {
             logger.info("failed to open port {}", ioStream.toString());
-            return false;
         }
         readThread = new Thread(reader);
         writeThread = new Thread(writer);
@@ -254,13 +260,14 @@ public class Port {
      * Gets called by the modem database builder when the modem database is complete
      */
     public void modemDBComplete() {
-        synchronized (this) {
-            modemDBComplete = true;
-        }
-        driver.modemDBComplete(this);
+        modemDBComplete = true;
     }
 
-    /**
+    public Map<InsteonAddress, ModemDBEntry> getModemDBEntries() {
+		return modemDBEntries;
+	}
+
+	/**
      * The IOStreamReader uses the MsgFactory to turn the incoming bytes into
      * Msgs for the listeners. It also communicates with the IOStreamWriter
      * to implement flow control (tell the IOStreamWriter that it needs to retransmit,
@@ -371,10 +378,9 @@ public class Port {
             // thereby corrupting the very same list we are iterating
             // through. That's why we make a copy of it, and
             // iterate through the copy.
-            ArrayList<MsgListener> tempList = null;
-            synchronized (listeners) {
-                tempList = (ArrayList<MsgListener>) listeners.clone();
-            }
+            List<MsgListener> tempList = new ArrayList<MsgListener>();
+            tempList.addAll(listeners);
+
             for (MsgListener l : tempList) {
                 l.msg(msg, handler ); // deliver msg to listener
             }
@@ -396,7 +402,7 @@ public class Port {
                     // to hang in the wait() below, because unsolicited messages
                     // do not trigger a notify(). For this reason we request retransmission
                     // if the wait() times out.
-                    getRequestReplyLock().wait(30000); // be patient for 30 msec
+                    getRequestReplyLock().wait(10000); // be patient for 30 msec
                     if (m_reply == ReplyType.WAITING_FOR_ACK) { // timeout expired without getting ACK or NACK
                         logger.trace("writer timeout expired, asking for retransmit!");
                         m_reply = ReplyType.GOT_NACK;
@@ -493,7 +499,6 @@ public class Port {
                         device = InsteonDevice.s_makeDevice(dt);
                         device.setAddress(a);
                         device.setProductKey(prodKey);
-                        device.setDriver(driver);
                         device.setIsModem(true);
                         device.setHandler(handler);
                         logger.debug("found modem {} in device_types: {}", a, device.toString());

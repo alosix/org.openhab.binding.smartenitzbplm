@@ -64,13 +64,11 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 		portName = devName;
 		baudRate = speed;
 	}
-	
 
 	@Override
 	public String toString() {
 		return "SerialIOStream [baudRate=" + baudRate + ", portName=" + portName + "]";
 	}
-
 
 	@Override
 	public boolean open() {
@@ -124,7 +122,8 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 			}
 
 			try {
-				// This is ending meaninful bit.. the io streams we read and write from get assigned
+				// This is ending meaninful bit.. the io streams we read and write from get
+				// assigned
 				inputStream = serialPort.getInputStream();
 				outputStream = serialPort.getOutputStream();
 			} catch (IOException e) {
@@ -140,28 +139,16 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	@Override
 	public void close() {
 		try {
-			synchronized (this) {
 			if (serialPort != null) {
+				serialPort.close();
 				serialPort.removeEventListener();
-
-				outputStream.flush();
 
 				inputStream.close();
 				outputStream.close();
 
-				serialPort.close();
-
-				serialPort = null;
-				inputStream = null;
-				outputStream = null;
-
-				
-				this.notify();
-				
-
 				logger.info("Serial port '{}' closed.", portName);
-				}
-			}	
+			}
+
 		} catch (Exception e) {
 			logger.error("Error closing serial port: '{}' ", portName, e);
 		}
@@ -198,9 +185,7 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 				logger.warn("Processing DATA_AVAILABLE event: received IOException in serial port event", e);
 			}
 
-			synchronized (this) {
-				this.notify();
-			}
+
 		}
 
 	}
@@ -209,7 +194,6 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	public String getDeviceName() {
 		return this.portName;
 	}
-
 
 	public void purgeRxBuffer() {
 		buffer.clear();

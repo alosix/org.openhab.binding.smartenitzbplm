@@ -49,6 +49,9 @@ public class SmartenItZBPLMBindingConstants {
 
 
     // Message Constants
+    public static final String SEND_STANDARD_MESSAGE = "SendStandardMessage";
+    public static final String SEND_STANDARD_MESSAGE_RECEIVED = "StandardMessageReceived";
+    
     public static final String GET_IM_INFO_REPLY = "GetIMInfoReply";
 	public static final String FIRMWARE_VERSION = "FirmwareVersion";
 	public static final String DEVICE_SUB_CATEGORY = "DeviceSubCategory";

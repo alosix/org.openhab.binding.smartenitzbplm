@@ -2,18 +2,12 @@ package org.openhab.binding.insteonplm.port;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
-import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice.DeviceStatus;
-import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Driver;
-import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.DriverListener;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
-import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Poller;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
@@ -26,15 +20,15 @@ import org.slf4j.LoggerFactory;
  * Handles messages that come in from the ports.
  * Will only process one message at a time.
  */
-public class PortListener implements MsgListener, DriverListener {
+public class PortListener implements MsgListener {
 	private final Logger logger = LoggerFactory.getLogger(PortListener.class);
 	
-	private Driver driver;
 	private ConcurrentHashMap<InsteonAddress, InsteonDevice> devices;
+	private Map<InsteonAddress, ModemDBEntry> modemDBEntries = new ConcurrentHashMap<InsteonAddress, ModemDBEntry>();
+	
 	private int x10HouseUnit = -1;
 	
-	public PortListener(Driver driver, ConcurrentHashMap<InsteonAddress, InsteonDevice> devices) {
-		this.driver = driver;
+	public PortListener( ConcurrentHashMap<InsteonAddress, InsteonDevice> devices) {
 		this.devices = devices;
 	}
 
@@ -55,46 +49,7 @@ public class PortListener implements MsgListener, DriverListener {
 
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void driverCompletelyInitialized() {
-        Map<InsteonAddress, ModemDBEntry> dbes = driver.lockModemDBEntries();
-        logger.info("modem database has {} entries!", dbes.size());
-        if (dbes.isEmpty()) {
-            logger.warn("the modem link database is empty!");
-        }
-        for (InsteonAddress k : dbes.keySet()) {
-            logger.debug("modem db entry: {}", k);
-        }
-        HashSet<InsteonAddress> addrs = new HashSet<InsteonAddress>();
-        for (InsteonDevice dev : devices.values()) {
-            InsteonAddress a = dev.getAddress();
-            if (!dbes.containsKey(a)) {
-                if (!a.isX10()) {
-                    logger.warn("device {} not found in the modem database. Did you forget to link?", a);
-                }
-            } else {
-                if (!dev.hasModemDBEntry()) {
-                    addrs.add(a);
-                    logger.info("device {} found in the modem database and {}.", a, getLinkInfo(dbes, a));
-                    dev.setHasModemDBEntry(true);
-                }
-                if (dev.getStatus() != DeviceStatus.POLLING) {
-                    Poller.s_instance().startPolling(dev, dbes.size());
-                }
-            }
-        }
-        for (InsteonAddress k : dbes.keySet()) {
-            if (!addrs.contains(k) && !k.equals(dbes.get(k).getPort().getAddress())) {
-                logger.info("device {} found in the modem database, but is not configured as an item and {}.", k,
-                        getLinkInfo(dbes, k));
-            }
-        }
-        driver.unlockModemDBEntries();
-    }
-
+   
     public String getLinkInfo(Map<InsteonAddress, ModemDBEntry> dbes, InsteonAddress a) {
         ModemDBEntry dbe = dbes.get(a);
         ArrayList<Byte> controls = dbe.getControls();
@@ -138,7 +93,7 @@ public class PortListener implements MsgListener, DriverListener {
 
     private void handleInsteonMessage(Msg msg, ZBPLMHandler handler) {
         InsteonAddress toAddr = msg.getAddr("toAddress");
-        if (!msg.isBroadcast() && !driver.isMsgForUs(toAddr)) {
+        if (!msg.isBroadcast()) {
             // not for one of our modems, do not process
             return;
         }

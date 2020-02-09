@@ -3,13 +3,16 @@ package org.openhab.binding.smartenitzbplm.thing.discovery;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
-import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Driver;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
@@ -37,6 +40,8 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 	private final Set<ZBPLMHandler> handlers = new CopyOnWriteArraySet<>();
 
 	private final Set<InsteonDiscoveryParticipant> participants = new CopyOnWriteArraySet<>();
+
+	private final BlockingQueue<Msg> deviceReplyQueue = new LinkedBlockingDeque<Msg>();
 
 	public ZBPLMDiscoveryService() throws IllegalArgumentException {
 		super(SEARCH_TIME);
@@ -102,71 +107,82 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 	private void scanModemDB(ZBPLMHandler handler) throws InterruptedException, IOException {
 		Port port = handler.getPort();
 		long waitTime = 0;
-		while (!port.getModemDBBuilder().isComplete() && waitTime < getScanTimeout()) {
+		while (!port.getModemDBBuilder().isComplete() && waitTime < (getScanTimeout() * 10)) {
 			Thread.sleep(100);
 			waitTime += 100;
 		}
-		
-		if(!port.getModemDBBuilder().isComplete()) {
+
+		if (!port.getModemDBBuilder().isComplete()) {
 			logger.warn("DB download not complete, skipping scan");
 			return;
 		}
 
-		Driver driver = port.getDriver();
 		try {
-			Map<InsteonAddress, ModemDBEntry> entries = driver.lockModemDBEntries();
+			Map<InsteonAddress, ModemDBEntry> entries = handler.getPort().getModemDBEntries();
 			port.addListener(this);
 
+			InsteonAddress modem = port.getAddress();
 			for (InsteonAddress address : entries.keySet()) {
+				if(address.equals(modem)) {
+					// No need to try to discover the modem..
+					continue;
+				}
 				logger.info("Sending discovery message to:" + address.toString());
-				Msg msg = Msg.makeMessage("SendStandardMessage");
+				Msg msg = Msg.makeMessage(SEND_STANDARD_MESSAGE);
 				msg.setAddress("toAddress", address);
 				msg.setByte("messageFlags", (byte) 0x0F);
 				msg.setByte("command1", (byte) 0x10);
 				msg.setByte("command2", (byte) 0x00);
 				port.writeMessage(msg);
-				
 
+				Msg reply = deviceReplyQueue.poll(10, TimeUnit.SECONDS);
+				if (reply != null) {
+					createDiscoveryResult(address, reply, handler);
+				}
 			}
-			
+
 			// Need to wait a bit so the port has a chance to get some replies
 			Thread.sleep(getScanTimeout());
 
 		} catch (FieldException e) {
 			logger.error("Error sending device type request", e);
 		} finally {
-			driver.unlockModemDBEntries();
 			port.removeListener(this);
 		}
 
+	}
+
+	private void createDiscoveryResult(InsteonAddress address, Msg msg, ZBPLMHandler handler) throws FieldException {
+		if (msg.isBroadcast() && msg.getByte("command1") == 0x01) {
+			logger.info("Got expected reply:" + msg.toString());
+			InsteonAddress toAddress = msg.getAddr("toAddress");
+
+			InsteonDeviceInformation deviceInformation = new InsteonDeviceInformation();
+			deviceInformation.setAddress(address);
+			deviceInformation.setDeviceCategory(toAddress.getHighByte());
+			deviceInformation.setDeviceSubCategory(toAddress.getMiddleByte());
+			deviceInformation.setFirmwareVersion(toAddress.getLowByte());
+			deviceInformation.setHandler(handler);
+			for (InsteonDiscoveryParticipant participant : participants) {
+				DiscoveryResult discoveryResult = participant.createResult(deviceInformation);
+				if (discoveryResult != null) {
+					thingDiscovered(discoveryResult);
+				}
+			}
+
+		}
 	}
 
 	// Messages from the modem about new devices will come in here
 	@Override
 	public void msg(Msg msg, ZBPLMHandler fromPort) {
 		logger.info("discovery got message:" + msg.toString());
-		if (msg.getName().equals(SmartenItZBPLMBindingConstants.GET_IM_INFO_REPLY)) {
-			try {
-				logger.info("Got expected reply:"+ msg.toString());
-				InsteonDeviceInformation deviceInformation = new InsteonDeviceInformation();
-				deviceInformation.setAddress(msg.getAddr(SmartenItZBPLMBindingConstants.IM_ADDRESS));
-				deviceInformation.setDeviceCategory(msg.getByte(SmartenItZBPLMBindingConstants.DEVICE_CATEGORY));
-				deviceInformation.setDeviceSubCategory(msg.getByte(SmartenItZBPLMBindingConstants.DEVICE_SUB_CATEGORY));
-				deviceInformation.setFirmwareVersion(msg.getByte(SmartenItZBPLMBindingConstants.FIRMWARE_VERSION));
-				deviceInformation.setHandler(fromPort);
-				for(InsteonDiscoveryParticipant participant: participants) {
-					DiscoveryResult discoveryResult = participant.createResult(deviceInformation);
-					if(discoveryResult != null) {
-						thingDiscovered(discoveryResult);
-					}
-				}
-				
-			} catch (FieldException e) {
-				logger.error("Error loading field for msg:" + msg.toString(), e);
-			} 
-
-		} else {
-			logger.error("Unexpected message type:" + msg.getName());
+		try {
+			if (msg.isBroadcast() && msg.getByte("command1") == 0x01) {
+				deviceReplyQueue.offer(msg);
+			}
+		} catch (FieldException e) {
+			// Just eat this in case we get a stray message
 		}
 	}
 

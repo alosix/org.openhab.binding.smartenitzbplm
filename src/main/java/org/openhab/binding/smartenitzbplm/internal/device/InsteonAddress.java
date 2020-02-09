@@ -221,16 +221,5 @@ public class InsteonAddress {
         return new InsteonAddress(val);
     }
 
-    /**
-     * Function for unit testing
-     * 
-     * @param args ignored
-     */
-    public static void main(String[] args) {
-        // debug/test code
-        InsteonAddress a1 = new InsteonAddress();
-        InsteonAddress a2 = new InsteonAddress();
-        System.out.println(a1.equals(a2));
-        System.out.println(new InsteonAddress("0f.0f.0a"));
-    }
+   
 }

@@ -36,10 +36,6 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 	
 
 
-
-	
-
-	private Driver driver = null;
 	private ConcurrentMap<InsteonAddress, InsteonDevice> devices = null;
 	private Port port = null;
 	private IOStream ioStream = null;
@@ -53,10 +49,10 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 		ZBPLMConfig config = getConfigAs(ZBPLMConfig.class);
 		this.serialPortManager = serialPortManager;
 		this.deviceTypeLoader = deviceTypeLoader;
-		this.driver = new Driver();
 		this.devices = new ConcurrentHashMap<>();
 		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port, config.zbplm_baud);
 		this.port = new Port(this);
+		// TODO: reallyneed to remove the driver.. its carp
 		this.port.setModemDBRetryTimeout(120000); // TODO: JWP add config
 
 		boolean portStarted = this.port.start();
@@ -109,14 +105,6 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 		// TODO Auto-generated method stub
 
 	}
-
-	
-	public Driver getDriver() {
-		return driver;
-	}
-
-
-
 
 	public ConcurrentMap<InsteonAddress, InsteonDevice> getDevices() {
 		return devices;

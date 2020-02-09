@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Executors;
 
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
@@ -37,11 +38,11 @@ public class ModemDBBuilder implements MsgListener, Runnable {
     private static final Logger logger = LoggerFactory.getLogger(ModemDBBuilder.class);
     private boolean isComplete = false;
     private Port port = null;
-    private Thread writeThread = null;
     private int timeoutMillis = 120000;
 
     
     public ModemDBBuilder(Port port) {
+    	logger.info("DB Builder created");
     	this.port = port;
 	}
 
@@ -50,26 +51,29 @@ public class ModemDBBuilder implements MsgListener, Runnable {
     }
 
     protected void start() {
-        port.addListener(this);
-        writeThread = new Thread(this);
-        writeThread.setName("DBBuilder");
-        writeThread.start();
+        
+        Executors.newSingleThreadExecutor().execute(this);
+        //writeThread = new Thread(this);
+        //writeThread.setName("DBBuilder");
+        //writeThread.start();
         logger.debug("querying port for first link record");
     }
 
     public void startDownload() {
         logger.info("starting modem database download");
+        port.addListener(this);
         port.clearModemDB();
         getFirstLinkRecord();
     }
 
-    public synchronized boolean isComplete() {
+    public boolean isComplete() {
         return (isComplete);
     }
 
     @Override
     public void run() {
         logger.trace("starting modem db builder thread");
+        
         while (!isComplete()) {
             startDownload();
             try {
@@ -82,6 +86,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
                 logger.warn("modem database download unsuccessful, restarting!");
             }
         }
+        port.removeListener(this);
         logger.trace("exiting modem db builder thread");
     }
 
@@ -110,8 +115,10 @@ public class ModemDBBuilder implements MsgListener, Runnable {
                 // will follow, so we do nothing here.
                 // If its "NACK", there are none
                 if (msg.getByte("ACK/NACK") == 0x15) {
-                    logger.info("got all link records.");
+                	logger.info("got all link records.");
                     done();
+                    logger.info("After done");
+                    return;
                 }
             } else if (msg.getByte("Cmd") == 0x57) {
                 // we got the link record response
@@ -119,26 +126,30 @@ public class ModemDBBuilder implements MsgListener, Runnable {
                 port.writeMessage(Msg.makeMessage("GetNextALLLinkRecord"));
             }
         } catch (FieldException e) {
-            logger.debug("bad field handling link records {}", e);
+            logger.error("bad field handling link records {}", e);
         } catch (IOException e) {
-            logger.debug("got IO exception handling link records {}", e);
+            logger.error("got IO exception handling link records {}", e);
         } catch (IllegalStateException e) {
-            logger.debug("got exception requesting link records {}", e);
+            logger.error("got exception requesting link records {}", e);
         }
     }
 
-    private synchronized void done() {
+    private void done() {
         isComplete = true;
-        port.removeListener(this);
+        logger.info("Starting done");
         port.modemDBComplete();
+        logger.info("port complete");
         logModemDB();
-
+        logger.info("done");
     }
 
     private void logModemDB() {
+    	if(!logger.isDebugEnabled()) {
+    		return;
+    	}
         try {
             logger.debug("MDB ------- start of modem link records ------------------");
-            Map<InsteonAddress, ModemDBEntry> dbes = port.getDriver().lockModemDBEntries();
+            Map<InsteonAddress, ModemDBEntry> dbes = port.getModemDBEntries();
             for (Entry<InsteonAddress, ModemDBEntry> db : dbes.entrySet()) {
                 ArrayList<Msg> lrs = db.getValue().getLinkRecords();
                 for (Msg m : lrs) {
@@ -153,9 +164,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
             logger.debug("MDB ---------------- end of modem link records -----------");
         } catch (FieldException e) {
             logger.error("cannot access field:", e);
-        } finally {
-            port.getDriver().unlockModemDBEntries();
-        }
+        } 
     }
 
     public static String toHex(byte b) {
@@ -163,7 +172,7 @@ public class ModemDBBuilder implements MsgListener, Runnable {
     }
 
     public void updateModemDB(InsteonAddress linkAddr, Port port, Msg m) {
-        Map<InsteonAddress, ModemDBEntry> dbes = port.getDriver().lockModemDBEntries();
+        Map<InsteonAddress, ModemDBEntry> dbes = port.getModemDBEntries();
         ModemDBEntry dbe = dbes.get(linkAddr);
         if (dbe == null) {
             dbe = new ModemDBEntry(linkAddr);
@@ -184,6 +193,5 @@ public class ModemDBBuilder implements MsgListener, Runnable {
                 logger.error("cannot access field:", e);
             }
         }
-        port.getDriver().unlockModemDBEntries();
     }
 }
