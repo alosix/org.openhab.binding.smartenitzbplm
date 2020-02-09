@@ -12,10 +12,11 @@
  */
 package org.openhab.binding.smartenitzbplm.internal;
 
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_LAMPLINC_2457D2;
 import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_PLM_COORDINATOR;
 
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +36,7 @@ import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
+import org.openhab.binding.smartenitzbplm.thing.InsteonDimmerThingHandler;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -51,7 +53,11 @@ import org.slf4j.LoggerFactory;
 public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     private final Logger logger = LoggerFactory.getLogger(SmartenItZBPLMHandlerFactory.class);
 
-    private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(THING_TYPE_PLM_COORDINATOR);
+    private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = new HashSet<ThingTypeUID>();
+    static {
+    	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_PLM_COORDINATOR);
+    	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_LAMPLINC_2457D2);
+    }
     
     private final Map<ThingUID, ServiceRegistration<?>> coordinatorHandlerRegs = new HashMap<>();
 
@@ -78,14 +84,6 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     public void setDeviceTypeLoader(DeviceTypeLoader deviceTypeLoader) {
     	this.deviceTypeLoader  = deviceTypeLoader;
     }
-//
-//    @Override
-//	protected void activate(ComponentContext componentContext) {
-//		super.activate(componentContext);
-//		//driver = new Driver();
-//		
-//		//portListener = new PortListener(driver, devices);
-//	}
 
 	@Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
@@ -107,6 +105,11 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
         	coordinatorHandlerRegs.put(handler.getThing().getUID(),
         			bundleContext.registerService(ZBPLMHandler.class.getName(), handler, new Hashtable<>()));
         	return handler;
+        }
+        
+        if(THING_TYPE_LAMPLINC_2457D2.equals(thingTypeUID)) {
+        	InsteonDimmerThingHandler dimmerHandler = new InsteonDimmerThingHandler(thing);
+        	return dimmerHandler;
         }
 
 

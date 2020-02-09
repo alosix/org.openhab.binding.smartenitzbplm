@@ -10,7 +10,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
+import org.eclipse.smarthome.config.discovery.DiscoveryService;
+import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants;
+
+import static java.util.stream.Collectors.toSet;
 import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
@@ -28,7 +32,7 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(immediate = true, service = ZBPLMDiscoveryService.class, configurationPid = "discovery.smartenitzbplm")
+@Component(immediate = true, service = {DiscoveryService.class,  ZBPLMDiscoveryService.class}, configurationPid = "discovery.smartenitzbplm")
 public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements MsgListener {
 	private static final Logger logger = LoggerFactory.getLogger(ZBPLMDiscoveryService.class);
 
@@ -68,6 +72,12 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 		} catch (InterruptedException | IOException e) {
 			logger.warn("Error while scanning DB for new handler:" + handler.toString(), e);
 		}
+	}
+
+	@Override
+	public Set<ThingTypeUID> getSupportedThingTypes() {
+		return participants.stream().flatMap(participant -> participant.getSupportedThingTypeUIDs().stream())
+				.collect(toSet());
 	}
 
 	protected void removeZBPLMHandler(ZBPLMHandler handler) {
@@ -123,7 +133,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 
 			InsteonAddress modem = port.getAddress();
 			for (InsteonAddress address : entries.keySet()) {
-				if(address.equals(modem)) {
+				if (address.equals(modem)) {
 					// No need to try to discover the modem..
 					continue;
 				}
@@ -141,9 +151,6 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 				}
 			}
 
-			// Need to wait a bit so the port has a chance to get some replies
-			Thread.sleep(getScanTimeout());
-
 		} catch (FieldException e) {
 			logger.error("Error sending device type request", e);
 		} finally {
@@ -154,7 +161,6 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 
 	private void createDiscoveryResult(InsteonAddress address, Msg msg, ZBPLMHandler handler) throws FieldException {
 		if (msg.isBroadcast() && msg.getByte("command1") == 0x01) {
-			logger.info("Got expected reply:" + msg.toString());
 			InsteonAddress toAddress = msg.getAddr("toAddress");
 
 			InsteonDeviceInformation deviceInformation = new InsteonDeviceInformation();
@@ -166,6 +172,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 			for (InsteonDiscoveryParticipant participant : participants) {
 				DiscoveryResult discoveryResult = participant.createResult(deviceInformation);
 				if (discoveryResult != null) {
+					logger.info("Found a thing:" + discoveryResult.toString());
 					thingDiscovered(discoveryResult);
 				}
 			}
@@ -176,7 +183,6 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 	// Messages from the modem about new devices will come in here
 	@Override
 	public void msg(Msg msg, ZBPLMHandler fromPort) {
-		logger.info("discovery got message:" + msg.toString());
 		try {
 			if (msg.isBroadcast() && msg.getByte("command1") == 0x01) {
 				deviceReplyQueue.offer(msg);

@@ -28,7 +28,7 @@ public class SmartenItZBPLMBindingConstants {
 
     public static final ThingTypeUID THING_TYPE_PLM_COORDINATOR = new ThingTypeUID(BINDING_ID, "coordinator_zbplm");
     
-    public static final ThingTypeUID THING_TYPE_LAMPLINC = new ThingTypeUID(BINDING_ID, "lamplinc");
+    public static final ThingTypeUID THING_TYPE_LAMPLINC_2457D2 = new ThingTypeUID(BINDING_ID, "lamplinc_2457D2");
 
     // List of all Channel ids
     public static final String CHANNEL_1 = "channel1";
