@@ -60,7 +60,7 @@ public class ModemDiscoveryParticipant implements UsbSerialDiscoveryParticipant 
 	}
 	
 	private ThingUID getUID(UsbSerialDeviceInformation deviceInformation) {
-		return new ThingUID(THING_TYPE_PLM_COORDINATOR, deviceInformation.getSerialNumber());
+		return new ThingUID(THING_TYPE_PLM_COORDINATOR, deviceInformation.getSerialPort().replaceAll("/", ""));
 	}
 	
 

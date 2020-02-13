@@ -29,6 +29,7 @@ import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
+import org.openhab.binding.smartenitzbplm.thing.listener.ShutdownMsg;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
@@ -162,12 +163,14 @@ public class Port {
         logger.info("starting port {}", ioStream.toString());
         if (running) {
             logger.info("port {} already running, not started again", ioStream.toString());
+            handler.setPortStatus(true);
             return true;
         }
         int retryCount = 0;
         boolean open = false;
-        while((open= !ioStream.open()) && retryCount < 10) {
+        while(!(open= ioStream.open()) && retryCount < 5) {
             logger.info("failed to open port {} retrying", ioStream.toString());
+            retryCount++;
         	try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {
@@ -175,16 +178,21 @@ public class Port {
         }
         if(!open) {
             logger.info("failed to open port {}", ioStream.toString());
+            handler.setPortStatus(false);
         }
-        readThread = new Thread(reader);
-        writeThread = new Thread(writer);
-        readThread.setName(ioStream.toString() + " Reader");
-        writeThread.setName(ioStream.toString() + " Writer");
-        readThread.start();
-        writeThread.start();
+        //readThread = new Thread(reader);
+        //writeThread = new Thread(writer);
+        //readThread.setName(ioStream.toString() + " Reader");
+        //writeThread.setName(ioStream.toString() + " Writer");
+        //readThread.start();
+        //writeThread.start();
+        handler.getExecutorService().execute(reader);
+        handler.getExecutorService().execute(writer);
+        
         modem.initialize();
         modemDBBuilder.start(); // start downloading the device list
         running = true;
+        handler.setPortStatus(true);
         return true;
     }
 
@@ -198,38 +206,16 @@ public class Port {
             logger.debug("port {} not running, no need to stop it", ioStream.toString());
             return;
         }
+        // delete the remaining write queue, then throw in the shutdown message
+        writeQueue.clear();
+        writeQueue.add(new ShutdownMsg());
+        
         ioStream.close();
-        if (modemDBBuilder != null) {
-            modemDBBuilder = null;
-        }
-        if (readThread != null) {
-            readThread.interrupt();
-        }
-        if (writeThread != null) {
-            writeThread.interrupt();
-        }
+
         logger.debug("waiting for read thread to exit for port {}", ioStream);
-        try {
-            if (readThread != null) {
-                readThread.join();
-            }
-        } catch (InterruptedException e) {
-            logger.debug("got interrupted waiting for read thread to exit.");
-        }
-        logger.debug("waiting for write thread to exit for port {}", ioStream);
-        try {
-            if (writeThread != null) {
-                writeThread.join();
-            }
-        } catch (InterruptedException e) {
-            logger.debug("got interrupted waiting for write thread to exit.");
-        }
-        logger.info("all threads for port {} stopped.", ioStream);
         
         running = false;
-        synchronized (listeners) {
-            listeners.clear();
-        }
+        listeners.clear();
     }
 
     /**
@@ -279,7 +265,6 @@ public class Port {
 
         private ReplyType m_reply = ReplyType.GOT_ACK;
         private Object m_replyLock = new Object();
-        private boolean m_dropRandomBytes = false; // set to true for fault injection
 
         /**
          * Helper function for implementing synchronization between reader and writer
@@ -294,12 +279,8 @@ public class Port {
         public void run() {
             logger.debug("starting reader...");
             byte[] buffer = new byte[2 * readSize];
-            Random rng = new Random();
             try {
                 for (int len = -1; (len = ioStream.read(buffer, 0, readSize)) > 0;) {
-                    if (m_dropRandomBytes && rng.nextInt(100) < 20) {
-                        len = dropBytes(buffer, len);
-                    }
                     msgFactory.addData(buffer, len);
                     processMessages();
                 }
@@ -348,28 +329,6 @@ public class Port {
             }
         }
 
-        /**
-         * Drops bytes randomly from buffer to simulate errors seen
-         * from the InsteonHub using the raw interface
-         * 
-         * @param buffer byte buffer from which to drop bytes
-         * @param len original number of valid bytes in buffer
-         * @return length of byte buffer after dropping from it
-         */
-        private int dropBytes(byte[] buffer, int len) {
-            final int DROP_RATE = 2; // in percent
-            Random rng = new Random();
-            ArrayList<Byte> l = new ArrayList<Byte>();
-            for (int i = 0; i < len; i++) {
-                if (rng.nextInt(100) >= DROP_RATE) {
-                    l.add(new Byte(buffer[i]));
-                }
-            }
-            for (int i = 0; i < l.size(); i++) {
-                buffer[i] = l.get(i);
-            }
-            return (l.size());
-        }
 
         @SuppressWarnings("unchecked")
         private void toAllListeners(Msg msg) {
@@ -435,6 +394,11 @@ public class Port {
                     // this call blocks until the lock on the queue is released
                     logger.trace("writer checking message queue");
                     Msg msg = writeQueue.take();
+                    if(msg.getClass().isInstance(ShutdownMsg.class)) {
+                    	// exit the thread we're shutdown
+                    	logger.info("Exiting writter");
+                    	return;
+                    }
                     if (msg.getData() == null) {
                         logger.error("found null message in write queue!");
                     } else {

@@ -2,10 +2,15 @@ package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
@@ -21,6 +26,9 @@ import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
+import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
+import org.openhab.binding.smartenitzbplm.thing.listener.InsteonMsgListener;
+import org.openhab.binding.smartenitzbplm.thing.listener.ShutdownMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,11 +38,8 @@ import org.slf4j.LoggerFactory;
  * @author jpowers
  *
  */
-public class ZBPLMHandler extends BaseBridgeHandler {
+public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	private final Logger logger = LoggerFactory.getLogger(ZBPLMHandler.class);
-
-	
-
 
 	private ConcurrentMap<InsteonAddress, InsteonDevice> devices = null;
 	private Port port = null;
@@ -42,49 +47,112 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 	private SerialPortManager serialPortManager;
 	private MsgFactory msgFactory = new MsgFactory();
 	private DeviceTypeLoader deviceTypeLoader;
+	private ZBPLMConfig config = null;
+	private ExecutorService executorService = null;
+
+	public ExecutorService getExecutorService() {
+		return executorService;
+	}
+
+	// holds the queues for the message listners so they don't block the world
+	private Map<InsteonAddress, BlockingQueue<Msg>> messageQueues = new HashMap<>();
 
 	public ZBPLMHandler(Bridge bridge, SerialPortManager serialPortManager, DeviceTypeLoader deviceTypeLoader) {
 		super(bridge);
 
-		ZBPLMConfig config = getConfigAs(ZBPLMConfig.class);
+		this.config = getConfigAs(ZBPLMConfig.class);
 		this.serialPortManager = serialPortManager;
 		this.deviceTypeLoader = deviceTypeLoader;
 		this.devices = new ConcurrentHashMap<>();
+
+	}
+
+	@Override
+	public void initialize() {
+		super.initialize();
+		this.executorService = ForkJoinPool.commonPool();
 		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port, config.zbplm_baud);
 		this.port = new Port(this);
-		// TODO: reallyneed to remove the driver.. its carp
 		this.port.setModemDBRetryTimeout(120000); // TODO: JWP add config
 
-		boolean portStarted = this.port.start();
-		if (portStarted) {
+		final Port port = this.port;
+		executorService.execute(new Runnable() {
+
+			@Override
+			public void run() {
+				port.start();
+
+			}
+		});
+
+	}
+	public void setPortStatus(boolean up) {
+		if (up) {
 			this.updateStatus(ThingStatus.ONLINE);
 		} else {
-			port.stop();
 			this.updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
 		}
+	}
 
+	public void addInsteonMsgListener(final InsteonMsgListener listener) {
+		logger.info("Adding msglistener:" + listener);
+		BlockingQueue<Msg> msgQueue = new LinkedBlockingDeque<Msg>();
+		messageQueues.put(listener.getAddress(), msgQueue);
+		Runnable msgRunnable = new Runnable() {
+
+			@Override
+			public void run() {
+				while (true) {
+					Msg msg = null;
+					try {
+						msg = msgQueue.take();
+						if (msg == null || ShutdownMsg.class.isInstance(msg)) {
+							return;
+						}
+						// Pass the message off to the listener
+						listener.onMessage(msg);
+					} catch (InterruptedException e) {
+
+					}
+
+				}
+
+			}
+		};
+		executorService.execute(msgRunnable);
+
+	}
+
+	@Override
+	public void msg(Msg msg, ZBPLMHandler handler) {
+		Collection<BlockingQueue<Msg>> values = messageQueues.values();
+		for (BlockingQueue<Msg> queue : values) {
+			queue.offer(msg);
+		}
+	}
+
+	public void sendMsg(Msg msg) {
+		try {
+			port.writeMessage(msg);
+		} catch (IOException e) {
+			logger.error("Unable to write message" + msg.toString(), e);
+		}
 	}
 
 	public Bridge getBridge() {
 		return super.getBridge();
 	}
-	
-	
+
 	public Port getPort() {
 		return port;
 	}
 
 	@Override
-	public void handleRemoval() {
-		// TODO Auto-generated method stub
-		super.handleRemoval();
-		this.port.stop();
-	}
-
-	@Override
 	public void dispose() {
 		super.dispose();
-		this.port.stop();
+		if(this.port != null) {
+			this.port.stop();
+		}
 	}
 
 	@Override
@@ -110,9 +178,6 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 		return devices;
 	}
 
-
-
-
 	public IOStream getIoStream() {
 		return ioStream;
 	}
@@ -121,7 +186,6 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 		return deviceTypeLoader;
 	}
 
-
 	public SerialPortManager getSerialPortManager() {
 		return serialPortManager;
 	}
@@ -129,6 +193,7 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 	public MsgFactory getMsgFactory() {
 		return msgFactory;
 	}
+
 	/**
 	 * 
 	 * @param scanTimeout
@@ -140,7 +205,7 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 			msg = Msg.makeMessage("StartALLLinking");
 			msg.setByte("LinkCode", (byte) 0x01);
 			msg.setByte("ALLLinkGroup", (byte) 0x01); // everything about uses 0x01 so far
-			//port.writeMessage(msg);
+			// port.writeMessage(msg);
 
 		} catch (IOException | FieldException e) {
 			// TODO Auto-generated catch block
@@ -148,10 +213,5 @@ public class ZBPLMHandler extends BaseBridgeHandler {
 		}
 
 	}
-
-
-
-
-	
 
 }

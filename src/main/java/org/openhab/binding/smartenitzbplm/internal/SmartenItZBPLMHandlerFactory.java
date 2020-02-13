@@ -12,7 +12,6 @@
  */
 package org.openhab.binding.smartenitzbplm.internal;
 
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_LAMPLINC_2457D2;
 import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_PLM_COORDINATOR;
 
 import java.util.HashMap;
@@ -36,7 +35,6 @@ import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
-import org.openhab.binding.smartenitzbplm.thing.InsteonDimmerThingHandler;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -56,7 +54,6 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = new HashSet<ThingTypeUID>();
     static {
     	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_PLM_COORDINATOR);
-    	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_LAMPLINC_2457D2);
     }
     
     private final Map<ThingUID, ServiceRegistration<?>> coordinatorHandlerRegs = new HashMap<>();
@@ -73,6 +70,10 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     private @Nullable SerialPortManager serialPortManager = null;
 
 	private @Nullable DeviceTypeLoader deviceTypeLoader = null;
+	
+	public SmartenItZBPLMHandlerFactory() {
+		logger.info("Instance created");
+	}
     
     
     @Reference
@@ -87,7 +88,6 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
 
 	@Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
-		logger.info("Supports thing type:" + thingTypeUID.toString());
         return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
 	
@@ -95,23 +95,24 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     @Override
     protected @Nullable ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
-        logger.info("thing type:" + thingTypeUID.toString());
-        logger.info("coordinator:" + THING_TYPE_PLM_COORDINATOR);
+        logger.info("thing type:" + thing.getUID());
         if(THING_TYPE_PLM_COORDINATOR.equals(thingTypeUID)) {
         	logger.info("creating zbplm handler");
+        	if(coordinatorHandlerRegs.containsKey(thing.getUID())) {
+        		logger.warn("Thing already exists");
+        		return (ThingHandler) coordinatorHandlerRegs.get(thing.getUID()).getReference();
+        	}
+        	
+        	
         	ZBPLMHandler handler =  new ZBPLMHandler((Bridge) thing, serialPortManager, deviceTypeLoader);
-        	 
+        	
+        	
         	// Save the reference and get it registered as a service so OSGI things can find it
         	coordinatorHandlerRegs.put(handler.getThing().getUID(),
         			bundleContext.registerService(ZBPLMHandler.class.getName(), handler, new Hashtable<>()));
         	return handler;
         }
         
-        if(THING_TYPE_LAMPLINC_2457D2.equals(thingTypeUID)) {
-        	InsteonDimmerThingHandler dimmerHandler = new InsteonDimmerThingHandler(thing);
-        	return dimmerHandler;
-        }
-
 
         return null;
     }

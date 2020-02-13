@@ -13,7 +13,9 @@
 package org.openhab.binding.smartenitzbplm.internal;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
+import org.eclipse.smarthome.core.thing.type.ChannelTypeUID;
 
 /**
  * The {@link SmartenItZBPLMBindingConstants} class defines common constants, which are
@@ -27,9 +29,9 @@ public class SmartenItZBPLMBindingConstants {
     static final String BINDING_ID = "smartenitzbplm";
 
     public static final ThingTypeUID THING_TYPE_PLM_COORDINATOR = new ThingTypeUID(BINDING_ID, "coordinator_zbplm");
-    
     public static final ThingTypeUID THING_TYPE_LAMPLINC_2457D2 = new ThingTypeUID(BINDING_ID, "lamplinc_2457D2");
-
+    
+    
     // List of all Channel ids
     public static final String CHANNEL_1 = "channel1";
     

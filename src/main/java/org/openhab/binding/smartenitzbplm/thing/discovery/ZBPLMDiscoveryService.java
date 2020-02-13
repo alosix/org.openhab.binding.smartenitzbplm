@@ -1,10 +1,15 @@
 package org.openhab.binding.smartenitzbplm.thing.discovery;
 
+import static java.util.stream.Collectors.toSet;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.SEND_STANDARD_MESSAGE;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
@@ -12,10 +17,6 @@ import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryService;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
-import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants;
-
-import static java.util.stream.Collectors.toSet;
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
@@ -32,7 +33,7 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(immediate = true, service = {DiscoveryService.class,  ZBPLMDiscoveryService.class}, configurationPid = "discovery.smartenitzbplm")
+@Component(immediate = true, service = {DiscoveryService.class,  ZBPLMDiscoveryService.class}, configurationPid = "discovery.smartenitzbplm.device")
 public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements MsgListener {
 	private static final Logger logger = LoggerFactory.getLogger(ZBPLMDiscoveryService.class);
 
@@ -46,6 +47,8 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 	private final Set<InsteonDiscoveryParticipant> participants = new CopyOnWriteArraySet<>();
 
 	private final BlockingQueue<Msg> deviceReplyQueue = new LinkedBlockingDeque<Msg>();
+	
+	private final ExecutorService executor = Executors.newFixedThreadPool(5);
 
 	public ZBPLMDiscoveryService() throws IllegalArgumentException {
 		super(SEARCH_TIME);
@@ -55,7 +58,6 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 
 	@Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)
 	protected void addInsteonDiscoveryParticipant(InsteonDiscoveryParticipant participant) {
-		logger.info("**************************Adding discovery participant:" + participant.toString());
 		participants.add(participant);
 	}
 
@@ -65,13 +67,20 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 
 	@Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)
 	protected void addZBPLMHandler(ZBPLMHandler handler) {
-		logger.info("*************************Adding handler:" + handler);
 		handlers.add(handler);
-		try {
-			scanModemDB(handler);
-		} catch (InterruptedException | IOException e) {
-			logger.warn("Error while scanning DB for new handler:" + handler.toString(), e);
-		}
+		// if we run this in the same thread the handler sits in the inbox until it completes
+		executor.submit(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					scanModemDB(handler);
+				} catch (InterruptedException | IOException e) {
+					logger.warn("Error while scanning DB for new handler:" + handler.toString(), e);
+				}
+				
+			}
+		});
+
 	}
 
 	@Override
