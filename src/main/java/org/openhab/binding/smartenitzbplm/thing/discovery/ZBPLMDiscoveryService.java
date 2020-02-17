@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
@@ -23,7 +23,7 @@ import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
-import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
+import org.openhab.binding.smartenitzbplm.thing.listener.InsteonMsgListener;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
@@ -33,8 +33,9 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(immediate = true, service = {DiscoveryService.class,  ZBPLMDiscoveryService.class}, configurationPid = "discovery.smartenitzbplm.device")
-public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements MsgListener {
+@Component(immediate = true, service = { DiscoveryService.class,
+		ZBPLMDiscoveryService.class }, configurationPid = "discovery.smartenitzbplm.device")
+public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements InsteonMsgListener {
 	private static final Logger logger = LoggerFactory.getLogger(ZBPLMDiscoveryService.class);
 
 	/**
@@ -42,13 +43,13 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 	 */
 	private final static int SEARCH_TIME = 120;
 
-	private final Set<ZBPLMHandler> handlers = new CopyOnWriteArraySet<>();
+	private ZBPLMHandler handler = null;
 
 	private final Set<InsteonDiscoveryParticipant> participants = new CopyOnWriteArraySet<>();
 
 	private final BlockingQueue<Msg> deviceReplyQueue = new LinkedBlockingDeque<Msg>();
-	
-	private final ExecutorService executor = Executors.newFixedThreadPool(5);
+
+	private final ExecutorService executor = ForkJoinPool.commonPool();
 
 	public ZBPLMDiscoveryService() throws IllegalArgumentException {
 		super(SEARCH_TIME);
@@ -65,32 +66,15 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 		participants.remove(participant);
 	}
 
-	@Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)
-	protected void addZBPLMHandler(ZBPLMHandler handler) {
-		handlers.add(handler);
-		// if we run this in the same thread the handler sits in the inbox until it completes
-		executor.submit(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					scanModemDB(handler);
-				} catch (InterruptedException | IOException e) {
-					logger.warn("Error while scanning DB for new handler:" + handler.toString(), e);
-				}
-				
-			}
-		});
-
+	@Reference
+	protected void setZBPLMHandler(ZBPLMHandler handler) {
+		this.handler = handler;
 	}
 
 	@Override
 	public Set<ThingTypeUID> getSupportedThingTypes() {
 		return participants.stream().flatMap(participant -> participant.getSupportedThingTypeUIDs().stream())
 				.collect(toSet());
-	}
-
-	protected void removeZBPLMHandler(ZBPLMHandler handler) {
-		handlers.remove(handler);
 	}
 
 	@Override
@@ -108,10 +92,19 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 	@Override
 	protected void startScan() {
 		logger.info("Starting scan");
-		for (ZBPLMHandler handler : handlers) {
-			handler.startScan(this.getScanTimeout());
+		// if we run this in the same thread the handler sits in the inbox until it
+		// completes
+		executor.submit(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					scanModemDB(handler);
+				} catch (InterruptedException | IOException e) {
+					logger.warn("Error while scanning DB for new handler:" + handler.toString(), e);
+				}
 
-		}
+			}
+		});
 
 	}
 
@@ -124,9 +117,10 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 	 * @throws IOException
 	 */
 	private void scanModemDB(ZBPLMHandler handler) throws InterruptedException, IOException {
+		logger.info("Starting to scan the contents of the modemDB");
 		Port port = handler.getPort();
 		long waitTime = 0;
-		while (!port.getModemDBBuilder().isComplete() && waitTime < (getScanTimeout() * 10)) {
+		while (!port.isRunning() && !port.isModemDBComplete() && waitTime < (getScanTimeout() * 10)) {
 			Thread.sleep(100);
 			waitTime += 100;
 		}
@@ -135,10 +129,12 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 			logger.warn("DB download not complete, skipping scan");
 			return;
 		}
+		
+		handler.addInsteonMsgListener(this);
 
 		try {
 			Map<InsteonAddress, ModemDBEntry> entries = handler.getPort().getModemDBEntries();
-			port.addListener(this);
+			
 
 			InsteonAddress modem = port.getAddress();
 			for (InsteonAddress address : entries.keySet()) {
@@ -163,7 +159,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 		} catch (FieldException e) {
 			logger.error("Error sending device type request", e);
 		} finally {
-			port.removeListener(this);
+			//port.removeListener(this);
 		}
 
 	}
@@ -189,9 +185,25 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements M
 		}
 	}
 
-	// Messages from the modem about new devices will come in here
+//	// Messages from the modem about new devices will come in here
+//	@Override
+//	public void msg(Msg msg, ZBPLMHandler fromPort) {
+//		try {
+//			if (msg.isBroadcast() && msg.getByte("command1") == 0x01) {
+//				deviceReplyQueue.offer(msg);
+//			}
+//		} catch (FieldException e) {
+//			// Just eat this in case we get a stray message
+//		}
+//	}
+
 	@Override
-	public void msg(Msg msg, ZBPLMHandler fromPort) {
+	public InsteonAddress getAddress() {
+		return handler.getPort().getAddress();
+	}
+
+	@Override
+	public void onMessage(Msg msg) {
 		try {
 			if (msg.isBroadcast() && msg.getByte("command1") == 0x01) {
 				deviceReplyQueue.offer(msg);

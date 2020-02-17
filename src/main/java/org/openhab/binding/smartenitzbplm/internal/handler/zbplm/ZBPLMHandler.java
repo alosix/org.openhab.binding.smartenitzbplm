@@ -55,7 +55,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	}
 
 	// holds the queues for the message listners so they don't block the world
-	private Map<InsteonAddress, BlockingQueue<Msg>> messageQueues = new HashMap<>();
+	private Map<InsteonMsgListener, BlockingQueue<Msg>> messageQueues = new ConcurrentHashMap<>();
 
 	public ZBPLMHandler(Bridge bridge, SerialPortManager serialPortManager, DeviceTypeLoader deviceTypeLoader) {
 		super(bridge);
@@ -74,6 +74,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port, config.zbplm_baud);
 		this.port = new Port(this);
 		this.port.setModemDBRetryTimeout(120000); // TODO: JWP add config
+		this.port.addListener(this);
 
 		final Port port = this.port;
 		executorService.execute(new Runnable() {
@@ -95,9 +96,10 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	}
 
 	public void addInsteonMsgListener(final InsteonMsgListener listener) {
-		logger.info("Adding msglistener:" + listener);
+		logger.info("Adding msglistener:" + listener.toString());
 		BlockingQueue<Msg> msgQueue = new LinkedBlockingDeque<Msg>();
-		messageQueues.put(listener.getAddress(), msgQueue);
+		messageQueues.put(listener, msgQueue);
+		
 		Runnable msgRunnable = new Runnable() {
 
 			@Override
@@ -106,6 +108,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 					Msg msg = null;
 					try {
 						msg = msgQueue.take();
+						logger.info("Taking message:" + msg.toString());
 						if (msg == null || ShutdownMsg.class.isInstance(msg)) {
 							return;
 						}
@@ -125,8 +128,10 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 
 	@Override
 	public void msg(Msg msg, ZBPLMHandler handler) {
+		logger.info("Got a message:" + msg.toString());
 		Collection<BlockingQueue<Msg>> values = messageQueues.values();
 		for (BlockingQueue<Msg> queue : values) {
+			logger.info("Dispatching message to queues:" + msg.toString());
 			queue.offer(msg);
 		}
 	}
@@ -194,24 +199,5 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 		return msgFactory;
 	}
 
-	/**
-	 * 
-	 * @param scanTimeout
-	 */
-	public void startScan(int scanTimeout) {
-		logger.info("Starting scan");
-		Msg msg;
-		try {
-			msg = Msg.makeMessage("StartALLLinking");
-			msg.setByte("LinkCode", (byte) 0x01);
-			msg.setByte("ALLLinkGroup", (byte) 0x01); // everything about uses 0x01 so far
-			// port.writeMessage(msg);
-
-		} catch (IOException | FieldException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
+	
 }

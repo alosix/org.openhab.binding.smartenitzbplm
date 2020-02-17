@@ -13,12 +13,12 @@
 package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vesalainen.comm.channel.SerialChannel.FlowControl;
 
 /**
  * Abstract class for implementation for I/O stream with anything that looks
@@ -31,7 +31,7 @@ import org.vesalainen.comm.channel.SerialChannel.FlowControl;
 
 public abstract class IOStream {
     private static final Logger logger = LoggerFactory.getLogger(IOStream.class);
-    protected InputStream inputStream = null;
+	protected final BlockingQueue<byte[]> inboundQueue = new LinkedBlockingDeque<byte[]>();
     protected OutputStream outputStream = null;
 
     /**
@@ -42,23 +42,8 @@ public abstract class IOStream {
      * @param readSize size to read
      * @return number of bytes read
      */
-    public int read(byte[] b, int offset, int readSize) throws InterruptedException {
-        int len = 0;
-        while (len < 1) {
-            try {
-                len = inputStream.read(b, offset, readSize);
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-            } catch (IOException e) {
-                logger.trace("got exception while reading: {}", e.getMessage());
-                while (!reconnect()) {
-                    logger.trace("sleeping before reconnecting");
-                    Thread.sleep(10000);
-                }
-            }
-        }
-        return (len);
+    public byte[] read() throws InterruptedException {
+        return inboundQueue.take();
     }
 
     /**

@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -72,8 +72,6 @@ public class Port {
     private IOStreamReader reader = null;
     private IOStreamWriter writer = null;
     private final int readSize = 1024; // read buffer size
-    private Thread readThread = null;
-    private Thread writeThread = null;
     private boolean running = false;
     private boolean modemDBComplete = false;
     private MsgFactory msgFactory = null;
@@ -83,7 +81,7 @@ public class Port {
     
     private Map<InsteonAddress, ModemDBEntry> modemDBEntries = new ConcurrentHashMap<InsteonAddress, ModemDBEntry>();
     
-    private LinkedBlockingQueue<Msg> writeQueue = new LinkedBlockingQueue<Msg>();
+    private BlockingQueue<Msg> writeQueue = new LinkedBlockingQueue<Msg>();
     private ZBPLMHandler handler;
 
     /**
@@ -102,7 +100,7 @@ public class Port {
         addListener(modem);
         this.reader = new IOStreamReader();
         this.writer = new IOStreamWriter();
-        this.modemDBBuilder = new ModemDBBuilder(this);
+        this.modemDBBuilder = new ModemDBBuilder(handler);
         this.deviceTypeLoader = handler.getDeviceTypeLoader();
     }
 
@@ -153,7 +151,7 @@ public class Port {
      */
     public void clearModemDB() {
         logger.debug("clearing modem db!");
-        modemDBEntries.clear();
+        modemDBEntries = new ConcurrentHashMap<InsteonAddress, ModemDBEntry>();
     }
 
     /**
@@ -179,20 +177,29 @@ public class Port {
         if(!open) {
             logger.info("failed to open port {}", ioStream.toString());
             handler.setPortStatus(false);
+            return false;
         }
-        //readThread = new Thread(reader);
-        //writeThread = new Thread(writer);
-        //readThread.setName(ioStream.toString() + " Reader");
-        //writeThread.setName(ioStream.toString() + " Writer");
-        //readThread.start();
-        //writeThread.start();
-        handler.getExecutorService().execute(reader);
-        handler.getExecutorService().execute(writer);
+
+        Thread readerThread = new Thread(reader, "ZBPLM Port-reader");
+        readerThread.start();
+        Thread writerThread = new Thread(writer, "ZBPLM Port-writer");
+        writerThread.start();
+        //handler.getExecutorService().execute(reader);
+        //handler.getExecutorService().execute(writer);
         
-        modem.initialize();
-        modemDBBuilder.start(); // start downloading the device list
-        running = true;
-        handler.setPortStatus(true);
+
+        InitializationListener modemInitializationListener = new InitializationListener() {
+			
+			@Override
+			public void onInitFinished() {
+		        modemDBBuilder.start(); // start downloading the device list
+		        running = true;
+		        handler.setPortStatus(true);
+		        logger.info("Finished starting the port");
+			}
+		};
+        modem.addInitializationListener(modemInitializationListener);
+        modem.initialize();        
         return true;
     }
 
@@ -200,6 +207,8 @@ public class Port {
      * Stops all threads
      */
     public void stop() {
+    	Thread.dumpStack();
+    	//logger.info("stacktrace:" + Thread.currentThread().getStackTrace().toString());
     	logger.info("Stopping port:" + this.getDeviceName());
     	
         if (!running) {
@@ -234,8 +243,9 @@ public class Port {
             throw new IOException("trying to write message without data!");
         }
         try {
-            writeQueue.add(m);
-            logger.trace("enqueued msg: {}", m);
+        	logger.info("offering message:{}", m);
+            writeQueue.offer(m);
+            logger.info("enqueued msg: {}", m);
         } catch (IllegalStateException e) {
             logger.error("cannot write message {}, write queue is full!", m);
         }
@@ -250,7 +260,7 @@ public class Port {
     }
 
     public Map<InsteonAddress, ModemDBEntry> getModemDBEntries() {
-		return modemDBEntries;
+		return Collections.unmodifiableMap(modemDBEntries);
 	}
 
 	/**
@@ -277,12 +287,16 @@ public class Port {
 
         @Override
         public void run() {
-            logger.debug("starting reader...");
-            byte[] buffer = new byte[2 * readSize];
-            try {
-                for (int len = -1; (len = ioStream.read(buffer, 0, readSize)) > 0;) {
-                    msgFactory.addData(buffer, len);
+            logger.info("***************** starting reader...");
+            //byte[] buffer = new byte[2 * readSize];
+			try {
+            	byte [] buffer = ioStream.read();
+            	while(buffer != null) {
+            		logger.info("Got bytes!!");
+                //for (int len = -1; (len = ioStream.read(buffer, 0, readSize)) > 0;) {
+                    msgFactory.addData(buffer, buffer.length);
                     processMessages();
+                    buffer = ioStream.read();
                 }
             } catch (InterruptedException e) {
                 logger.debug("reader thread got interrupted!");
@@ -291,6 +305,7 @@ public class Port {
         }
 
         private void processMessages() {
+        	logger.info("processing messages");
             try {
                 // must call processData() until we get a null pointer back
                 for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
@@ -437,7 +452,10 @@ public class Port {
      */
     class Modem implements MsgListener {
         private InsteonDevice device = null;
-
+        
+        private List<InitializationListener> initListeners = new ArrayList<InitializationListener>();
+        
+        
         InsteonAddress getAddress() {
             return (device == null) ? new InsteonAddress() : (device.getAddress());
         }
@@ -454,19 +472,21 @@ public class Port {
                 }
                 if (msg.getByte("Cmd") == 0x60) {
                     // add the modem to the device list
-                    InsteonAddress a = new InsteonAddress(msg.getAddress("IMAddress"));
+                    InsteonAddress address = new InsteonAddress(msg.getAddress("IMAddress"));
+                    logger.info("Modem device addr is:" + address.toString());
                     String prodKey = "0x000045";
                     DeviceType dt = deviceTypeLoader.getDeviceType(prodKey);
                     if (dt == null) {
-                        logger.error("unknown modem product key: {} for modem: {}.", prodKey, a);
+                        logger.error("unknown modem product key: {} for modem: {}.", prodKey, address);
                     } else {
                         device = InsteonDevice.s_makeDevice(dt);
-                        device.setAddress(a);
+                        device.setAddress(address);
                         device.setProductKey(prodKey);
                         device.setIsModem(true);
                         device.setHandler(handler);
-                        logger.debug("found modem {} in device_types: {}", a, device.toString());
-                        modemDBBuilder.updateModemDB(a, Port.this, null);
+                        logger.debug("found modem {} in device_types: {}", address, device.toString());
+                        modemDBBuilder.updateModemDB(address, Port.this, null);
+                        notifyListeners();
                     }
                     // can unsubscribe now
                     removeListener(this);
@@ -476,6 +496,7 @@ public class Port {
             }
         }
 
+        
         public void initialize() {
             try {
                 Msg m = Msg.makeMessage("GetIMInfo");
@@ -483,6 +504,16 @@ public class Port {
             } catch (IOException e) {
                 logger.error("modem init failed!", e);
             }
+        }
+        
+        public void addInitializationListener(InitializationListener listener) {
+        	initListeners.add(listener);
+        }
+        
+        private void notifyListeners() {
+        	for(InitializationListener listener: initListeners) {
+        		listener.onInitFinished();
+        	}
         }
     }
 }

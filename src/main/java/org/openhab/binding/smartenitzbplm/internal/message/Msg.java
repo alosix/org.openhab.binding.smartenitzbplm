@@ -352,7 +352,7 @@ public class Msg {
         }
         int offset = m_definition.getField(key).getOffset();
         if (offset < 0 || offset + numBytes > m_data.length) {
-            throw new FieldException("data index out of bounds!");
+            throw new FieldException("data index out of bounds! key:" + key);
         }
         byte[] section = new byte[numBytes];
         System.arraycopy(m_data, offset, section, 0, numBytes);

@@ -13,14 +13,14 @@
 package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Set;
 import java.util.TooManyListenersException;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Stream;
 
-import org.apache.commons.collections.Buffer;
-import org.apache.commons.collections.buffer.CircularFifoBuffer;
-import org.apache.commons.collections.buffer.SynchronizedBuffer;
 import org.eclipse.smarthome.io.transport.serial.PortInUseException;
 import org.eclipse.smarthome.io.transport.serial.SerialPort;
 import org.eclipse.smarthome.io.transport.serial.SerialPortEvent;
@@ -40,11 +40,9 @@ import org.slf4j.LoggerFactory;
  */
 public class SerialIOStream extends IOStream implements SerialPortEventListener {
 	private static final Logger logger = LoggerFactory.getLogger(SerialIOStream.class);
-	private SerialPort m_port = null;
-	private final String m_appName = "PLM";
+	protected InputStream inputStream = null;
 	private int baudRate = 115200; // baud rate
 	private String portName = null;
-	// TODO: JWP Pass this in
 	private SerialPortManager serialPortManager = null;
 	private SerialPort serialPort;
 
@@ -52,11 +50,9 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	 * The length of the receive buffer
 	 */
 	private static final int RX_BUFFER_LEN = 1024;
-	/**
-	 * The circular fifo queue for receive data
-	 */
-	private final Buffer buffer = SynchronizedBuffer.decorate(new CircularFifoBuffer(RX_BUFFER_LEN));
 
+	//private final BlockingQueue<byte[]> inboundQueue = new LinkedBlockingDeque<byte[]>();
+	
 	private Set<String> portOpenRuntimeExcepionMessages = ConcurrentHashMap.newKeySet();
 
 	public SerialIOStream(SerialPortManager serialPortManager, String devName, int speed) {
@@ -89,9 +85,14 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 				logger.error("Serial Error: Port {} does not exist.", portName);
 				return false;
 			}
+			
+			if (portIdentifier.isCurrentlyOwned()) {
+				logger.error("Port is already owned by {}.", portIdentifier.getCurrentOwner());
+				return false;
+			}
 
 			try {
-				SerialPort localSerialPort = portIdentifier.open("org.openhab.binding.zigbee", 100);
+				SerialPort localSerialPort = portIdentifier.open("org.openhab.binding.smartenitzbplm", 100);
 				localSerialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
 						SerialPort.PARITY_NONE);
 				localSerialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
@@ -140,11 +141,11 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	public void close() {
 		try {
 			if (serialPort != null) {
-				serialPort.close();
-				serialPort.removeEventListener();
-
 				inputStream.close();
 				outputStream.close();
+				serialPort.removeEventListener();
+				
+				serialPort.close();
 
 				logger.info("Serial port '{}' closed.", portName);
 			}
@@ -159,7 +160,7 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 		if (event.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
 			try {
 				int available = inputStream.available();
-				logger.trace("Processing DATA_AVAILABLE event: have {} bytes available", available);
+				logger.info("Processing DATA_AVAILABLE event: have {} bytes available", available);
 				byte buf[] = new byte[available];
 				int offset = 0;
 				while (offset != available) {
@@ -178,10 +179,12 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 					}
 					offset += n;
 				}
-				for (int i = 0; i < available; i++) {
-					buffer.add(new Integer(buf[i] & 0xff));
-				}
-			} catch (IOException e) {
+				logger.info("Adding bytes to inbound queue");
+				inboundQueue.put(buf);
+//				for (int i = 0; i < available; i++) {
+//					buffer.add(new Integer(buf[i] & 0xff));
+//				}
+			} catch (IOException | InterruptedException e) {
 				logger.warn("Processing DATA_AVAILABLE event: received IOException in serial port event", e);
 			}
 
@@ -196,7 +199,8 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	}
 
 	public void purgeRxBuffer() {
-		buffer.clear();
+		
+		//buffer.clear();
 
 	}
 

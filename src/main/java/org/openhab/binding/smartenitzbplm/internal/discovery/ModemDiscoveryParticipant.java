@@ -3,6 +3,7 @@ package org.openhab.binding.smartenitzbplm.internal.discovery;
 import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_PLM_COORDINATOR;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.jdt.annotation.Nullable;
@@ -22,6 +23,8 @@ public class ModemDiscoveryParticipant implements UsbSerialDiscoveryParticipant 
 	private static final Logger logger = LoggerFactory.getLogger(ModemDiscoveryParticipant.class);
 
 	private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(THING_TYPE_PLM_COORDINATOR);
+	
+	private final Set<String> alreadyFound = new HashSet<String>(); 
 
 	public static final int VENDOR_ID = 0x10c4;
 	public static final int PRODUCT_ID = 0xea60;
@@ -35,6 +38,11 @@ public class ModemDiscoveryParticipant implements UsbSerialDiscoveryParticipant 
 	@Override
 	public @Nullable DiscoveryResult createResult(UsbSerialDeviceInformation deviceInformation) {
 		if(deviceInformation.getVendorId() == VENDOR_ID && deviceInformation.getProductId() == PRODUCT_ID) {
+			if(alreadyFound.contains(deviceInformation.getSerialPort())) {
+				
+				return null;
+			}
+			alreadyFound.add(deviceInformation.getSerialPort());
 			logger.info("Found matching usb devices at:" + deviceInformation.getSerialPort());
 			return DiscoveryResultBuilder
 					.create(getUID(deviceInformation))
