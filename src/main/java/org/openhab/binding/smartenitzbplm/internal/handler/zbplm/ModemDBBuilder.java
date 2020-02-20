@@ -69,14 +69,15 @@ public class ModemDBBuilder implements InsteonMsgListener, Runnable {
 		logger.info("starting modem database download");
 		handler.addInsteonMsgListener(this);
 		logger.info("clearing the db");
-		port.clearModemDB();
+		//port.clearModemDB();
 		getFirstLinkRecord();
 	}
 
 	private void getFirstLinkRecord() {
 		try {
-			logger.info("Writting first link message");
+			logger.info("Writting first link message to port:" + port);
 			port.writeMessage(Msg.makeMessage("GetFirstALLLinkRecord"));
+			logger.info("After Writting first link message");
 		} catch (IOException e) {
 			logger.error("error sending link record query ", e);
 		}
@@ -98,7 +99,6 @@ public class ModemDBBuilder implements InsteonMsgListener, Runnable {
 	 */
 	@Override
 	public void onMessage(Msg msg) {
-		logger.info("Got Message:" + msg.isPureNack());
 		if (msg.isPureNack()) {
 			
 			return;

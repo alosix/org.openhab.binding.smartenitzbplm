@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="smartenitzbplm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
+
+	<!-- On Off Switch -->
+	<channel-type id="switch_onoff">
+		<item-type>Switch</item-type>
+		<label>Switch</label>
+		<description>Switches the power on and off</description>
+		<category>Light</category>
+	</channel-type>
+
+    <!-- Level Switch -->
+    <channel-type id="switch_level">
+        <item-type>Dimmer</item-type>
+        <label>Dimmer</label>
+        <description>Sets the level of the light</description>
+        <category>Light</category>
+    </channel-type>
+</thing:thing-descriptions>

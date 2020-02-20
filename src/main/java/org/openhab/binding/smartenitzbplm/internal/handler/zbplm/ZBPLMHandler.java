@@ -71,11 +71,13 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	public void initialize() {
 		super.initialize();
 		this.executorService = ForkJoinPool.commonPool();
-		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port, config.zbplm_baud);
+		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port, config.zbplm_baud, msgFactory);
 		this.port = new Port(this);
-		this.port.setModemDBRetryTimeout(120000); // TODO: JWP add config
 		this.port.addListener(this);
-
+		
+		this.port.setModemDBBuilder(new ModemDBBuilder(this));
+		this.port.setModemDBRetryTimeout(120000); // TODO: JWP add config
+		
 		final Port port = this.port;
 		executorService.execute(new Runnable() {
 
