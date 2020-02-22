@@ -1,7 +1,7 @@
 package org.openhab.binding.smartenitzbplm.internal.device;
 
 public class X10Address implements DeviceAddress {
-	private byte lowByte = 0;
+	private final byte lowByte;
 
 	public X10Address(byte lowByte) {
 		this.lowByte = lowByte;

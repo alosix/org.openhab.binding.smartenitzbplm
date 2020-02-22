@@ -128,6 +128,7 @@ public class ModemDBBuilder implements InsteonMsgListener, Runnable {
 	private void done() {
 		isComplete = true;
 		port.modemDBComplete();
+		handler.setPortStatus(true);
 		//port.removeListener(this);
 		logModemDB();
 		logger.info("Modem db download completed");

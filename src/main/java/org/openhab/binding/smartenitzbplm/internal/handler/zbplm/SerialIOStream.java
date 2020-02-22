@@ -42,15 +42,24 @@ import org.slf4j.LoggerFactory;
  */
 public class SerialIOStream extends IOStream implements SerialPortEventListener {
 	private static final Logger logger = LoggerFactory.getLogger(SerialIOStream.class);
+	private static boolean highlander = false;
 	private int baudRate = 115200; // baud rate
 	private String portName = null;
 	private SerialPortManager serialPortManager = null;
-	private SerialPort serialPort;
+	private SerialPort serialPort = null;
 	private MsgFactory msgFactory = null;
+	
+	// Note: Be careful who gets to read from this as pending reads will
+	// affect the ability to close the port
+	private InputStream inputStream = null;
 
-	private Set<String> portOpenRuntimeExcepionMessages = ConcurrentHashMap.newKeySet();
 
 	public SerialIOStream(SerialPortManager serialPortManager, String devName, int speed, MsgFactory msgFactory) {
+		if(highlander) {
+			Exception e = new Exception("there can be only one");
+			logger.error("Second iostream created", e);
+		}
+		highlander = true;
 		this.serialPortManager = serialPortManager;
 		this.msgFactory = msgFactory;
 		this.portName = devName;
@@ -65,92 +74,63 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	@Override
 	public boolean open() {
 		try {
-			logger.debug("Connecting to serial port [{}] at {} baud", portName, baudRate);
+			synchronized (serialPortManager) {
 
-			// in some rare cases we have to check whether a port really exists, because if
-			// it doesn't the call to
-			// CommPortIdentifier#open will kill the whole JVM
-			Stream<SerialPortIdentifier> serialPortIdentifiers = serialPortManager.getIdentifiers();
-			if (!serialPortIdentifiers.findAny().isPresent()) {
-				logger.warn("No communication ports found, cannot connect to [{}]", portName);
-				return false;
-			}
+				logger.debug("Connecting to serial port [{}] at {} baud", portName, baudRate);
 
-			SerialPortIdentifier portIdentifier = serialPortManager.getIdentifier(portName);
-			if (portIdentifier == null) {
-				logger.error("Serial Error: Port {} does not exist.", portName);
-				return false;
-			}
+				// in some rare cases we have to check whether a port really exists, because if
+				// it doesn't the call to
+				// CommPortIdentifier#open will kill the whole JVM
+				Stream<SerialPortIdentifier> serialPortIdentifiers = serialPortManager.getIdentifiers();
+				if (!serialPortIdentifiers.findAny().isPresent()) {
+					logger.warn("No communication ports found, cannot connect to [{}]", portName);
+					return false;
+				}
 
-			if (portIdentifier.isCurrentlyOwned()) {
-				logger.error("Port is already owned by {}.", portIdentifier.getCurrentOwner());
-				return false;
-			}
+				SerialPortIdentifier portIdentifier = serialPortManager.getIdentifier(portName);
+				if (portIdentifier == null) {
+					logger.error("Serial Error: Port {} does not exist.", portName);
+					return false;
+				}
 
-			try {
-				SerialPort localSerialPort = portIdentifier.open("org.openhab.binding.smartenitzbplm", 100);
-				localSerialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
-						SerialPort.PARITY_NONE);
-				localSerialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
+				if (portIdentifier.isCurrentlyOwned()) {
+					logger.error("Port is already owned by {}.", portIdentifier.getCurrentOwner());
+					return false;
+				}
 
-				// localSerialPort.enableReceiveTimeout(100);
-				localSerialPort.addEventListener(this);
-				// localSerialPort.notifyOnDataAvailable(true);
+				try {
+					serialPort = portIdentifier.open("org.openhab.binding.smartenitzbplm", 5000); // wait 5 seconds 
+					serialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
+							SerialPort.PARITY_NONE);
+					serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
 
-				logger.debug("Serial port [{}] is initialized.", portName);
-				serialPort = localSerialPort;
-				portOpenRuntimeExcepionMessages.clear();
-			} catch (PortInUseException e) {
-				logger.error("Serial Error: Port {} in use.", portName);
-				return false;
-			} catch (UnsupportedCommOperationException e) {
-				logger.error("Serial Error: Unsupported comm operation on Port {}.", portName);
-				return false;
-			} catch (TooManyListenersException e) {
-				logger.error("Serial Error: Too many listeners on Port {}.", portName);
-				return false;
-			} catch (RuntimeException e) {
-				if (!portOpenRuntimeExcepionMessages.contains(e.getMessage())) {
-					portOpenRuntimeExcepionMessages.add(e.getMessage());
+					// localSerialPort.enableReceiveTimeout(100);
+					serialPort.addEventListener(this);
+					serialPort.notifyOnDataAvailable(true);
+
+					logger.debug("Serial port [{}] is initialized.", portName);
+				} catch (PortInUseException e) {
+					logger.error("Serial Error: Port {} in use.", portName);
+					return false;
+				} catch (UnsupportedCommOperationException e) {
+					logger.error("Serial Error: Unsupported comm operation on Port {}.", portName);
+					return false;
+				} catch (TooManyListenersException e) {
+					logger.error("Serial Error: Too many listeners on Port {}.", portName);
+					return false;
+				} catch (RuntimeException e) {
 					logger.error("Serial Error: Device cannot be opened on Port {}. Caused by {}", portName,
 							e.getMessage());
+					return false;
 				}
-				return false;
-			}
 
+			}
 			try {
 				// This is ending meaninful bit.. the io streams we read and write from get
 				// assigned
 				inputStream = serialPort.getInputStream();
 				outputStream = serialPort.getOutputStream();
 
-				Runnable msgReaderRunable = new Runnable() {
-
-					@Override
-					public void run() {
-						while (true) {
-							try {
-								byte buffer[] = new byte[32];
-								int read = 0;
-								while ((read = inputStream.read(buffer)) > 0) {
-									msgFactory.addData(buffer, read);
-								
-									for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
-										inboundQueue.put(m);
-									}
-								}
-							} catch (IOException | InterruptedException e) {
-								logger.error("Error reading from the input stream", e);
-							} catch(Throwable t) {
-								logger.error("Thread exiting", t);
-							}
-							
-						}
-					}
-				};
-				Thread msgReaderThread = new Thread(msgReaderRunable, "msg reader");
-				msgReaderThread.start();
-				
 
 			} catch (IOException e) {
 				logger.error("Error getting one of the streams", e);
@@ -167,16 +147,18 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	public void close() {
 		try {
 			if (serialPort != null) {
-				inputStream.close();
-				outputStream.close();
 				serialPort.removeEventListener();
-
+				inputStream.close();
+				logger.info("input stream closed");
+				outputStream.close();
+				logger.info("output stream closed");
 				serialPort.close();
-
 				logger.info("Serial port '{}' closed.", portName);
+			} else {
+				logger.info("serial port was null");
 			}
 
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			logger.error("Error closing serial port: '{}' ", portName, e);
 		}
 	}
@@ -194,8 +176,29 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 
 	@Override
 	public void serialEvent(SerialPortEvent event) {
-		logger.info("Got serial event {}", event.toString());
+		if(SerialPortEvent.DATA_AVAILABLE == event.getEventType()) {
+			try {
+				int available = inputStream.available();
+				byte buffer[] = new byte[32];
+				int totalRead = 0;
+				while (totalRead < available) {
+					int read = inputStream.read(buffer);
+					logger.debug("Read {} bytes", read);
+					msgFactory.addData(buffer, read);
+
+					for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
+						inboundQueue.put(m);
+					}
+					totalRead += read;
+				}
+			} catch (IOException | InterruptedException e) {
+				logger.error("Error reading from the input stream", e);
+			} catch (Throwable t) {
+				logger.error("Thread exiting", t);
+			}	
+		}
 		
+
 	}
 
 }

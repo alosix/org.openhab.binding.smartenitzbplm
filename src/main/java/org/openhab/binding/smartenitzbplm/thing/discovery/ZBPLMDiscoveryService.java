@@ -25,6 +25,7 @@ import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
+import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
 import org.openhab.binding.smartenitzbplm.thing.listener.InsteonMsgListener;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -145,11 +146,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 					continue;
 				}
 				logger.info("Sending discovery message to:" + address.toString());
-				Msg msg = Msg.makeMessage(SEND_STANDARD_MESSAGE);
-				msg.setAddress(TO_ADDRESS, address);
-				msg.setByte(MESSAGE_FLAGS, (byte) 0x0F);
-				msg.setByte(COMMAND_1, (byte) 0x10);
-				msg.setByte(COMMAND_2, (byte) 0x00);
+				Msg msg = MsgFactory.makeStandardMessage(address, (byte) 0x0f, (byte) 0x10, (byte) 0x00);
 				port.writeMessage(msg);
 
 				Msg reply = deviceReplyQueue.poll(10, TimeUnit.SECONDS);

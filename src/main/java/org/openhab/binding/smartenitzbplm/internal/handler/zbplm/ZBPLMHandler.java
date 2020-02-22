@@ -2,13 +2,11 @@ package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -23,7 +21,6 @@ import org.eclipse.smarthome.io.transport.serial.SerialPortManager;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
-import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
@@ -69,7 +66,6 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 
 	@Override
 	public void initialize() {
-		super.initialize();
 		this.executorService = ForkJoinPool.commonPool();
 		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port, config.zbplm_baud, msgFactory);
 		this.port = new Port(this);
@@ -91,6 +87,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	}
 
 	public void setPortStatus(boolean up) {
+		logger.info("Setting port status to {}", up);
 		if (up) {
 			this.updateStatus(ThingStatus.ONLINE);
 		} else {
@@ -156,9 +153,17 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 
 	@Override
 	public void dispose() {
-		super.dispose();
 		if (this.port != null) {
-			this.port.stop();
+			Runnable stopRunnable = new Runnable() {
+				
+				@Override
+				public void run() {
+					port.stop();
+
+				}
+			};
+			executorService.execute(stopRunnable);
+			
 		}
 	}
 

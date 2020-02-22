@@ -22,9 +22,9 @@ import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
  */
 
 public class InsteonAddress implements DeviceAddress {
-	private byte highByte;
-	private byte middleByte;
-	private byte lowByte;
+	private final byte highByte;
+	private final byte middleByte;
+	private final byte lowByte;
 
 	public InsteonAddress(InsteonAddress a) {
 		highByte = a.highByte;
@@ -50,18 +50,7 @@ public class InsteonAddress implements DeviceAddress {
 		lowByte = aX10HouseUnit;
 	}
 
-	private void setHighByte(byte h) {
-		highByte = h;
-	}
-
-	private void setMiddleByte(byte m) {
-		middleByte = m;
-	}
-
-	private void setLowByte(byte l) {
-		lowByte = l;
-	}
-
+	
 	public byte getHighByte() {
 		return highByte;
 	}
@@ -74,22 +63,10 @@ public class InsteonAddress implements DeviceAddress {
 		return lowByte;
 	}
 
-	
-	public boolean isX10() {
-		return this.highByte == 0x00 && this.middleByte == 0x00 && this.lowByte != 0x00;
-
-	}
-
 	public void storeBytes(byte[] bytes, int offset) {
 		bytes[offset] = getHighByte();
 		bytes[offset + 1] = getMiddleByte();
 		bytes[offset + 2] = getLowByte();
-	}
-
-	public void loadBytes(byte[] bytes, int offset) {
-		setHighByte(bytes[offset]);
-		setMiddleByte(bytes[offset + 1]);
-		setLowByte(bytes[offset + 2]);
 	}
 
 	@Override
@@ -126,6 +103,5 @@ public class InsteonAddress implements DeviceAddress {
 		return true;
 	}
 
-	
 
 }

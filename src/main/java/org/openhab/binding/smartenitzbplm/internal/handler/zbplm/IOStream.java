@@ -36,7 +36,6 @@ public abstract class IOStream {
 	
     protected final BlockingQueue<Msg> inboundQueue = new LinkedBlockingDeque<Msg>();
 	
-	protected InputStream inputStream = null;
     protected OutputStream outputStream = null;
 
     /**

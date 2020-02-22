@@ -208,20 +208,17 @@ public class Port {
 	 * Stops all threads
 	 */
 	public void stop() {
-		Thread.dumpStack();
 		// logger.info("stacktrace:" +
 		// Thread.currentThread().getStackTrace().toString());
 		logger.info("Stopping port:" + this.getDeviceName());
-
-		if (!running) {
-			logger.debug("port {} not running, no need to stop it", ioStream.toString());
-			return;
-		}
+		ioStream.close();
+		logger.info("Closed iostream");
+		
 		// delete the remaining write queue, then throw in the shutdown message
 		writeQueue.clear();
 		writeQueue.add(new ShutdownMsg());
 
-		ioStream.close();
+
 
 		logger.debug("waiting for read thread to exit for port {}", ioStream);
 
@@ -482,11 +479,9 @@ public class Port {
 
 		public void initialize() {
 			try {
-				logger.info("initializing modem");
+				logger.debug("initializing modem");
 				Msg m = Msg.makeMessage("GetIMInfo");
-				logger.info("** after make message");
 				writeMessage(m);
-				logger.info("** after write message");
 			} catch (Throwable e) {
 				logger.error("modem init failed!", e);
 			}

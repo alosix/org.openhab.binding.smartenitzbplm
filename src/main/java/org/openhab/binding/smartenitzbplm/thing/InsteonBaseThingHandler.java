@@ -10,6 +10,7 @@ import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddressFactory;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
+import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.thing.config.InsteonBaseConfig;
 import org.openhab.binding.smartenitzbplm.thing.listener.InsteonMsgListener;
 import org.slf4j.Logger;
@@ -31,9 +32,6 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 	
 	@Override
 	public void initialize() {
-		logger.info("Init called");
-		updateStatus(ThingStatus.UNKNOWN);
-
         if (getBridge() != null) {
             bridgeStatusChanged(getBridge().getStatusInfo());
         }
@@ -41,6 +39,13 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 
 
 	
+	@Override
+	public void onMessage(Msg msg) {
+		// Noop for now
+		
+	}
+
+
 	@Override
 	public void bridgeStatusChanged(ThingStatusInfo bridgeStatusInfo) {
 		super.bridgeStatusChanged(bridgeStatusInfo);
@@ -54,8 +59,7 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 
 	@Override
 	public void handleCommand(ChannelUID channelUID, Command command) {
-		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
