@@ -14,6 +14,8 @@ package org.openhab.binding.smartenitzbplm.internal.message;
 
 import java.util.Objects;
 
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddressFactory;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
 
@@ -27,26 +29,26 @@ import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
  */
 
 public final class Field {
-    private final String m_name;
-    private final int m_offset;
-    private final DataType m_type;
+    private final String name;
+    private final int offset;
+    private final DataType type;
 
     public String getName() {
-        return m_name;
+        return name;
     }
 
     public int getOffset() {
-        return m_offset;
+        return offset;
     }
 
     public DataType getType() {
-        return m_type;
+        return type;
     }
 
     public Field(String name, DataType type, int off) {
-        m_name = name;
-        m_type = type;
-        m_offset = off;
+        this.name = name;
+        this.type = type;
+        this.offset = off;
     }
 
     private void check(int arrayLen, DataType t) throws FieldException {
@@ -55,13 +57,13 @@ public final class Field {
     }
 
     private void checkSpace(int arrayLen) throws FieldException {
-        if (m_offset + m_type.getSize() > arrayLen) {
+        if (offset + type.getSize() > arrayLen) {
             throw new FieldException("field write beyond end of msg");
         }
     }
 
     private void checkType(DataType t) throws FieldException {
-        if (m_type != t) {
+        if (type != t) {
             throw new FieldException("field write type mismatch!");
         }
     }
@@ -72,9 +74,9 @@ public final class Field {
     }
 
     public String toString(byte[] array) {
-        String s = m_name + ":";
+        String s = name + ":";
         try {
-            switch (m_type) {
+            switch (type) {
                 case BYTE:
                     s += Utils.getHexByte(getByte(array));
                     break;
@@ -103,8 +105,8 @@ public final class Field {
                 break;
             // case FLOAT: setFloat(array, (float) o); break;
             case ADDRESS:
-                setAddress(array, (InsteonAddress) o);
-                break;
+				setAddress(array, (DeviceAddress) o);
+            	break;
             default:
                 throw new FieldException("Not implemented data type " + getType() + "!");
         }
@@ -120,7 +122,7 @@ public final class Field {
      */
     public void setByte(byte[] array, byte b) throws FieldException {
         check(array.length, DataType.BYTE);
-        array[m_offset] = b;
+        array[offset] = b;
     }
 
     /**
@@ -132,10 +134,10 @@ public final class Field {
      */
     public void setInt(byte[] array, int i) throws FieldException {
         check(array.length, DataType.INT);
-        array[m_offset] = (byte) ((i >>> 24) & 0xFF);
-        array[m_offset + 1] = (byte) ((i >>> 16) & 0xFF);
-        array[m_offset + 2] = (byte) ((i >>> 8) & 0xFF);
-        array[m_offset + 3] = (byte) ((i >>> 0) & 0xFF);
+        array[offset] = (byte) ((i >>> 24) & 0xFF);
+        array[offset + 1] = (byte) ((i >>> 16) & 0xFF);
+        array[offset + 2] = (byte) ((i >>> 8) & 0xFF);
+        array[offset + 3] = (byte) ((i >>> 0) & 0xFF);
     }
 
     /**
@@ -146,9 +148,15 @@ public final class Field {
      * @param adr the insteon address value to set
      */
 
-    public void setAddress(byte[] array, InsteonAddress adr) throws FieldException {
-        check(array.length, DataType.ADDRESS);
-        adr.storeBytes(array, m_offset);
+    public  void setAddress(byte[] array, DeviceAddress adr) throws FieldException {
+    	check(array.length, DataType.ADDRESS);
+    	if(adr == null) {
+    		array[0] = 0x00;
+    		array[1] = 0x00;
+    		array[2] = 0x00;
+    	} else {
+    		adr.storeBytes(array, offset);
+    	}
     }
 
     /**
@@ -159,7 +167,7 @@ public final class Field {
      */
     public byte getByte(byte[] array) throws FieldException {
         check(array.length, DataType.BYTE);
-        return array[m_offset];
+        return array[offset];
     }
 
     /**
@@ -170,10 +178,10 @@ public final class Field {
      */
     public int getInt(byte[] array) throws FieldException {
         check(array.length, DataType.INT);
-        byte b1 = array[m_offset];
-        byte b2 = array[m_offset + 1];
-        byte b3 = array[m_offset + 2];
-        byte b4 = array[m_offset + 3];
+        byte b1 = array[offset];
+        byte b2 = array[offset + 1];
+        byte b3 = array[offset + 2];
+        byte b4 = array[offset + 3];
         int value = ((b1 << 24) + (b2 << 16) + (b3 << 8) + (b4 << 0));
         return value;
     }
@@ -185,11 +193,9 @@ public final class Field {
      * @return the address
      */
 
-    public InsteonAddress getAddress(byte[] array) throws FieldException {
+    public DeviceAddress getAddress(byte[] array) throws FieldException {
         check(array.length, DataType.ADDRESS);
-        InsteonAddress adr = new InsteonAddress();
-        adr.loadBytes(array, m_offset);
-        return adr;
+        return DeviceAddressFactory.fromBytes(array, offset);
     }
 
     /**

@@ -14,7 +14,10 @@ package org.openhab.binding.smartenitzbplm.internal.message;
 
 import java.io.IOException;
 
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
+import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,4 +146,114 @@ public class MsgFactory {
         System.arraycopy(m_buf, len, m_buf, 0, m_end + 1 - len);
         m_end -= len;
     }
+    
+    
+    /**
+	 * Helper method to make standard message
+	 * 
+	 * @param flags
+	 * @param cmd1
+	 * @param cmd2
+	 * @return standard message
+	 * @throws FieldException
+	 * @throws IOException
+	 */
+	public static  Msg makeStandardMessage(DeviceAddress address, byte flags, byte cmd1, byte cmd2) throws FieldException, IOException {
+		return (makeStandardMessage(address, flags, cmd1, cmd2, -1));
+	}
+
+	/**
+	 * Helper method to make standard message, possibly with group
+	 * 
+	 * @param flags
+	 * @param cmd1
+	 * @param cmd2
+	 * @param group (-1 if not a group message)
+	 * @return standard message
+	 * @throws FieldException
+	 * @throws IOException
+	 */
+	public static Msg makeStandardMessage(DeviceAddress address, byte flags, byte cmd1, byte cmd2, int group) throws FieldException, IOException {
+		Msg m = Msg.makeMessage(SEND_STANDARD_MESSAGE);
+		DeviceAddress addr = null;
+		if (group != -1) {
+			flags |= 0xc0; // mark message as group message
+			// and stash the group number into the address
+			addr = new InsteonAddress((byte) 0, (byte) 0, (byte) (group & 0xff));
+		} else {
+			addr = address;
+		}
+		m.setAddress(TO_ADDRESS, addr);
+		m.setByte(MESSAGE_FLAGS, flags);
+		m.setByte(COMMAND_1, cmd1);
+		m.setByte(COMMAND_2, cmd2);
+		return m;
+	}
+
+	public static Msg makeX10Message(byte rawX10, byte X10Flag) throws FieldException, IOException {
+		Msg m = Msg.makeMessage("SendX10Message");
+		m.setByte("rawX10", rawX10);
+		m.setByte("X10Flag", X10Flag);
+		m.setQuietTime(300L);
+		return m;
+	}
+
+	/**
+	 * Helper method to make extended message
+	 * 
+	 * @param flags
+	 * @param cmd1
+	 * @param cmd2
+	 * @return extended message
+	 * @throws FieldException
+	 * @throws IOException
+	 */
+	public static Msg makeExtendedMessage(DeviceAddress address, byte flags, byte cmd1, byte cmd2) throws FieldException, IOException {
+		return makeExtendedMessage(address, flags, cmd1, cmd2, new byte[] {});
+	}
+
+	/**
+	 * Helper method to make extended message
+	 * 
+	 * @param flags
+	 * @param cmd1
+	 * @param cmd2
+	 * @param data  array with userdata
+	 * @return extended message
+	 * @throws FieldException
+	 * @throws IOException
+	 */
+	public static Msg makeExtendedMessage(DeviceAddress address, byte flags, byte cmd1, byte cmd2, byte[] data) throws FieldException, IOException {
+		Msg m = Msg.makeMessage(SEND_EXTENDED_MESSAGE);
+		m.setAddress(TO_ADDRESS, address);
+		m.setByte(MESSAGE_FLAGS, (byte) (((flags & 0xff) | 0x10) & 0xff));
+		m.setByte(COMMAND_1, cmd1);
+		m.setByte(COMMAND_2, cmd2);
+		m.setUserData(data);
+		m.setCRC();
+		return m;
+	}
+
+	/**
+	 * Helper method to make extended message, but with different CRC calculation
+	 * 
+	 * @param flags
+	 * @param cmd1
+	 * @param cmd2
+	 * @param data  array with user data
+	 * @return extended message
+	 * @throws FieldException
+	 * @throws IOException
+	 */
+	public static  Msg makeExtendedMessageCRC2(DeviceAddress address, byte flags, byte cmd1, byte cmd2, byte[] data)
+			throws FieldException, IOException {
+		Msg m = Msg.makeMessage(SEND_EXTENDED_MESSAGE);
+		m.setAddress(TO_ADDRESS, address);
+		m.setByte(MESSAGE_FLAGS, (byte) (((flags & 0xff) | 0x10) & 0xff));
+		m.setByte(COMMAND_1, cmd1);
+		m.setByte(COMMAND_2, cmd2);
+		m.setUserData(data);
+		m.setCRC2();
+		return m;
+	}
 }

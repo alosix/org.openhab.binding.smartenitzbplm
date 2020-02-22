@@ -28,6 +28,7 @@ import org.openhab.binding.smartenitzbplm.internal.device.GroupMessageStateMachi
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
+import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgType;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
 import org.slf4j.Logger;
@@ -41,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * @author Bernd Pfrommer
  * @since 1.5.0
  */
-
+@Deprecated
 public abstract class MessageHandler {
     private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
 
@@ -81,7 +82,7 @@ public abstract class MessageHandler {
     public void sendExtendedQuery(DeviceFeature f, byte aCmd1, byte aCmd2) {
         InsteonDevice d = f.getDevice();
         try {
-            Msg m = d.makeExtendedMessage((byte) 0x1f, aCmd1, aCmd2);
+            Msg m = MsgFactory.makeExtendedMessage(d.getAddress(), (byte) 0x1f, aCmd1, aCmd2);
             m.setQuietTime(500L);
             d.enqueueMessage(m, f);
         } catch (IOException e) {
@@ -365,7 +366,7 @@ public abstract class MessageHandler {
             if (!isMybutton(msg, f)) {
                 return;
             }
-            InsteonAddress a = f.getDevice().getAddress();
+            DeviceAddress a = f.getDevice().getAddress();
             if (msg.isAckOfDirect()) {
                 logger.error("{}: device {}: ignoring ack of direct.", nm(), a);
             } else {
@@ -508,7 +509,7 @@ public abstract class MessageHandler {
         @Override
         public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
             try {
-                InsteonAddress a = f.getDevice().getAddress();
+                DeviceAddress a = f.getDevice().getAddress();
                 int cmd2 = msg.getByte("command2") & 0xff;
                 int button = this.getIntParameter("button", -1);
                 if (button < 0) {
@@ -530,7 +531,7 @@ public abstract class MessageHandler {
          * 
          * @param cmd2
          */
-        void handleNoButtons(int cmd2, InsteonAddress a, Msg msg) {
+        void handleNoButtons(int cmd2, DeviceAddress a, Msg msg) {
             if (cmd2 == 0) {
                 logger.info("{}: set device {} to OFF", nm(), a);
                 m_feature.publish(OnOffType.OFF, StateChangeType.CHANGED);
@@ -1133,7 +1134,7 @@ public abstract class MessageHandler {
 
         @Override
         public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
-            InsteonAddress a = f.getDevice().getAddress();
+            DeviceAddress a = f.getDevice().getAddress();
             logger.info("{}: set X10 device {} to ON", nm(), a);
             m_feature.publish(OnOffType.ON, StateChangeType.ALWAYS);
         }
@@ -1146,7 +1147,7 @@ public abstract class MessageHandler {
 
         @Override
         public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
-            InsteonAddress a = f.getDevice().getAddress();
+            DeviceAddress a = f.getDevice().getAddress();
             logger.info("{}: set X10 device {} to OFF", nm(), a);
             m_feature.publish(OnOffType.OFF, StateChangeType.ALWAYS);
         }
@@ -1159,7 +1160,7 @@ public abstract class MessageHandler {
 
         @Override
         public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
-            InsteonAddress a = f.getDevice().getAddress();
+            DeviceAddress a = f.getDevice().getAddress();
             logger.debug("{}: ignoring brighten message for device {}", nm(), a);
         }
     }
@@ -1171,7 +1172,7 @@ public abstract class MessageHandler {
 
         @Override
         public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
-            InsteonAddress a = f.getDevice().getAddress();
+            DeviceAddress a = f.getDevice().getAddress();
             logger.debug("{}: ignoring dim message for device {}", nm(), a);
         }
     }
@@ -1183,7 +1184,7 @@ public abstract class MessageHandler {
 
         @Override
         public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
-            InsteonAddress a = f.getDevice().getAddress();
+            DeviceAddress a = f.getDevice().getAddress();
             logger.info("{}: set X10 device {} to OPEN", nm(), a);
             m_feature.publish(OpenClosedType.OPEN, StateChangeType.ALWAYS);
         }
@@ -1196,7 +1197,7 @@ public abstract class MessageHandler {
 
         @Override
         public void handleMessage(int group, byte cmd1, Msg msg, DeviceFeature f, ZBPLMHandler handler) {
-            InsteonAddress a = f.getDevice().getAddress();
+            DeviceAddress a = f.getDevice().getAddress();
             logger.info("{}: set X10 device {} to CLOSED", nm(), a);
             m_feature.publish(OpenClosedType.CLOSED, StateChangeType.ALWAYS);
         }

@@ -17,9 +17,10 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.TreeSet;
 
-import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils.ParsingException;
 import org.slf4j.Logger;
@@ -116,7 +117,7 @@ public class Msg {
         try {
             InputStream stream = Msg.class.getResourceAsStream("/msg_definitions.xml");
             if (stream != null) {
-                HashMap<String, Msg> msgs = XMLMessageReader.readMessageDefinitions(stream);
+                Map<String, Msg> msgs = XMLMessageReader.readMessageDefinitions(stream);
                 msgMap.putAll(msgs);
             } else {
                 logger.error("could not get message definition resource!");
@@ -259,17 +260,16 @@ public class Msg {
         m_definition.addField(f);
     }
 
-    public InsteonAddress getAddr(String name) {
+    public DeviceAddress getAddr(String name) {
         if (m_definition == null) {
             return null;
         }
-        InsteonAddress a = null;
         try {
-            a = m_definition.getField(name).getAddress(m_data);
+            return m_definition.getField(name).getAddress(m_data);
         } catch (FieldException e) {
             // do nothing, we'll return null
         }
-        return a;
+        return null;
     }
 
     public int getHopsLeft() throws FieldException {
@@ -321,7 +321,7 @@ public class Msg {
      * @param key the name of the field
      * @param adr the address to put
      */
-    public void setAddress(String key, InsteonAddress adr) throws FieldException {
+    public void setAddress(String key, DeviceAddress adr) throws FieldException {
         Field f = m_definition.getField(key);
         f.setAddress(m_data, adr);
     }
@@ -365,7 +365,7 @@ public class Msg {
      * @param field the filed name to fetch
      * @return the address
      */
-    public InsteonAddress getAddress(String field) throws FieldException {
+    public DeviceAddress getAddress(String field) throws FieldException {
         if (m_definition == null) {
             throw new FieldException("no msg definition!");
         }

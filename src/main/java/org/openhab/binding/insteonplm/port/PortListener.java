@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
@@ -24,7 +25,7 @@ public class PortListener implements MsgListener {
 	private final Logger logger = LoggerFactory.getLogger(PortListener.class);
 	
 	private ConcurrentHashMap<InsteonAddress, InsteonDevice> devices;
-	private Map<InsteonAddress, ModemDBEntry> modemDBEntries = new ConcurrentHashMap<InsteonAddress, ModemDBEntry>();
+	private Map<DeviceAddress, ModemDBEntry> modemDBEntries = new ConcurrentHashMap<>();
 	
 	private int x10HouseUnit = -1;
 	
@@ -92,12 +93,12 @@ public class PortListener implements MsgListener {
     }
 
     private void handleInsteonMessage(Msg msg, ZBPLMHandler handler) {
-        InsteonAddress toAddr = msg.getAddr("toAddress");
+        DeviceAddress toAddr = msg.getAddr("toAddress");
         if (!msg.isBroadcast()) {
             // not for one of our modems, do not process
             return;
         }
-        InsteonAddress fromAddr = msg.getAddr("fromAddress");
+        DeviceAddress fromAddr = msg.getAddr("fromAddress");
         if (fromAddr == null) {
             logger.debug("invalid fromAddress, ignoring msg {}", msg);
             return;
@@ -124,7 +125,7 @@ public class PortListener implements MsgListener {
         }
     }
 
-    private void handleMessage(ZBPLMHandler handler, InsteonAddress fromAddr, Msg msg) {
+    private void handleMessage(ZBPLMHandler handler, DeviceAddress fromAddr, Msg msg) {
     	// TODO: JWP figure ot how to get device.. or delete
         InsteonDevice dev = null;//getDevice(fromAddr);
         if (dev == null) {

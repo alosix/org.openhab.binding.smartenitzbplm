@@ -21,6 +21,8 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Handler;
 
 import org.eclipse.smarthome.core.thing.Bridge;
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddressFactory;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
@@ -45,7 +47,6 @@ public class ModemDBBuilder implements InsteonMsgListener, Runnable {
 	private ZBPLMHandler handler;
 
 	public ModemDBBuilder(ZBPLMHandler handler) {
-		logger.info("DB Builder created");
 		this.port = handler.getPort();
 		this.handler = handler;
 	}
@@ -138,8 +139,8 @@ public class ModemDBBuilder implements InsteonMsgListener, Runnable {
 		}
 		try {
 			logger.debug("MDB ------- start of modem link records ------------------");
-			Map<InsteonAddress, ModemDBEntry> dbes = port.getModemDBEntries();
-			for (Entry<InsteonAddress, ModemDBEntry> db : dbes.entrySet()) {
+			Map<DeviceAddress, ModemDBEntry> dbes = port.getModemDBEntries();
+			for (Entry<DeviceAddress, ModemDBEntry> db : dbes.entrySet()) {
 				ArrayList<Msg> lrs = db.getValue().getLinkRecords();
 				for (Msg m : lrs) {
 					int recordFlags = m.getByte("RecordFlags") & 0xff;
@@ -160,8 +161,8 @@ public class ModemDBBuilder implements InsteonMsgListener, Runnable {
 		return Utils.getHexString(b);
 	}
 
-	public void updateModemDB(InsteonAddress linkAddr, Port port, Msg m) {
-		Map<InsteonAddress, ModemDBEntry> dbes = port.getModemDBEntries();
+	public void updateModemDB(DeviceAddress linkAddr, Port port, Msg m) {
+		Map<DeviceAddress, ModemDBEntry> dbes = port.getModemDBEntries();
 		ModemDBEntry dbe = dbes.get(linkAddr);
 		if (dbe == null) {
 			dbe = new ModemDBEntry(linkAddr);
@@ -185,8 +186,8 @@ public class ModemDBBuilder implements InsteonMsgListener, Runnable {
 	}
 
 	@Override
-	public InsteonAddress getAddress() {
-		// TODO Auto-generated method stub
-		return new InsteonAddress("M0.DE.AA");
+	public DeviceAddress getAddress() {
+		return DeviceAddressFactory.fromString("30.DE.30");
 	}
+
 }

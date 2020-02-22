@@ -12,7 +12,8 @@
  */
 package org.openhab.binding.smartenitzbplm.internal;
 
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_LAMPLINC_2457D2;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_PLM_COORDINATOR;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.smarthome.config.core.ConfigDescriptionProvider;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
@@ -30,6 +32,7 @@ import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
+import org.eclipse.smarthome.core.thing.type.DynamicStateDescriptionProvider;
 import org.eclipse.smarthome.io.transport.serial.SerialPortManager;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
@@ -113,9 +116,12 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
         }
         
         if(THING_TYPE_LAMPLINC_2457D2.equals(thingTypeUID)) {
-        	InsteonDimmerThingHandler dimmerHandler = new InsteonDimmerThingHandler(thing, null);
-        	dimmerHandler.init();
-        	return dimmerHandler;
+        	InsteonDimmerThingHandler handler = new InsteonDimmerThingHandler(thing);
+//           	bundleContext.registerService(ConfigDescriptionProvider.class.getName(), handler,
+//                    new Hashtable<String, Object>());
+//            bundleContext.registerService(DynamicStateDescriptionProvider.class.getName(), handler,
+//                    new Hashtable<String, Object>());
+        	return handler;
         }
         
 

@@ -21,6 +21,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceType;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceTypeLoader;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
@@ -70,7 +71,7 @@ public class Port {
 	private Modem modem = null;
 	private IOStreamReader reader = null;
 	private IOStreamWriter writer = null;
-	private final int readSize = 1024; // read buffer size
+
 	private boolean running = false;
 	private boolean modemDBComplete = false;
 	// private MsgFactory msgFactory = null;
@@ -78,7 +79,7 @@ public class Port {
 	private DeviceTypeLoader deviceTypeLoader = null;
 	private List<MsgListener> listeners = Collections.synchronizedList(new ArrayList<MsgListener>());
 
-	private Map<InsteonAddress, ModemDBEntry> modemDBEntries = new ConcurrentHashMap<InsteonAddress, ModemDBEntry>();
+	private Map<DeviceAddress, ModemDBEntry> modemDBEntries = new ConcurrentHashMap<>();
 
 	private final BlockingQueue<Msg> writeQueue = new LinkedBlockingQueue<Msg>();
 	private ZBPLMHandler handler;
@@ -114,7 +115,7 @@ public class Port {
 		return running;
 	}
 
-	public InsteonAddress getAddress() {
+	public DeviceAddress getAddress() {
 		return modem.getAddress();
 	}
 
@@ -181,10 +182,10 @@ public class Port {
 			return false;
 		}
 
-		//Thread readerThread = new Thread(reader, "ZBPLM Port-reader");
-		//readerThread.start();
-		//Thread writerThread = new Thread(writer, "ZBPLM Port-writer");
-		//writerThread.start();
+		// Thread readerThread = new Thread(reader, "ZBPLM Port-reader");
+		// readerThread.start();
+		// Thread writerThread = new Thread(writer, "ZBPLM Port-writer");
+		// writerThread.start();
 		handler.getExecutorService().execute(reader);
 		handler.getExecutorService().execute(writer);
 
@@ -193,8 +194,8 @@ public class Port {
 			@Override
 			public void onInitFinished() {
 				modemDBBuilder.start(); // start downloading the device list
-				//running = true;
-				//handler.setPortStatus(true);
+				// running = true;
+				// handler.setPortStatus(true);
 				logger.info("Finished starting the port");
 			}
 		};
@@ -260,7 +261,7 @@ public class Port {
 		modemDBComplete = true;
 	}
 
-	public Map<InsteonAddress, ModemDBEntry> getModemDBEntries() {
+	public Map<DeviceAddress, ModemDBEntry> getModemDBEntries() {
 		return modemDBEntries;
 	}
 
@@ -288,7 +289,6 @@ public class Port {
 
 		@Override
 		public void run() {
-			logger.info("***************** starting reader...");
 			try {
 				for (Msg msg = ioStream.read(); msg != null; msg = ioStream.read()) {
 					toAllListeners(msg);
@@ -297,45 +297,11 @@ public class Port {
 				}
 			} catch (InterruptedException e) {
 				logger.info("Interrupted whil waiting for message");
-			} 
-			// byte[] buffer = new byte[2 * readSize];
-//			try {
-//            	byte [] buffer = ioStream.read();
-//            	while(buffer != null) {
-//            		logger.info("Got bytes!!");
-//                //for (int len = -1; (len = ioStream.read(buffer, 0, readSize)) > 0;) {
-//                    msgFactory.addData(buffer, buffer.length);
-//                    processMessages();
-//                    buffer = ioStream.read();
-//                }
-//            } catch (InterruptedException e) {
-//                logger.debug("reader thread got interrupted!");
-//            }
-//            logger.error("reader thread exiting!");
+			} catch (Throwable t) {
+				logger.error("Exception thrown, thread exiting", t);
+			}
 		}
 
-//        private void processMessages() {
-//        	logger.info("processing messages");
-//            try {
-//                // must call processData() until we get a null pointer back
-//                for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
-//                	logger.info("processed message:" + m.toString());
-//                    toAllListeners(m);
-//                    notifyWriter(m);
-//                }
-//            } catch (IOException e) {
-//                // got bad data from modem,
-//                // unblock those waiting for ack
-//                logger.warn("bad data received: {}", e.getMessage());
-//                synchronized (getRequestReplyLock()) {
-//                    if (m_reply == ReplyType.WAITING_FOR_ACK) {
-//                        logger.warn("got bad data back, must assume message was acked.");
-//                        m_reply = ReplyType.GOT_ACK;
-//                        getRequestReplyLock().notify();
-//                    }
-//                }
-//            }
-//        }
 
 		private void notifyWriter(Msg msg) {
 			synchronized (getRequestReplyLock()) {
@@ -388,7 +354,7 @@ public class Port {
 					// do not trigger a notify(). For this reason we request retransmission
 					// if the wait() times out.
 					synchronized (getRequestReplyLock()) {
-						getRequestReplyLock().wait(10000); // be patient for 30 msec	
+						getRequestReplyLock().wait(10000); // be patient for 30 msec
 					}
 					if (m_reply == ReplyType.WAITING_FOR_ACK) { // timeout expired without getting ACK or NACK
 						logger.trace("writer timeout expired, asking for retransmit!");
@@ -417,26 +383,27 @@ public class Port {
 		@Override
 		public void run() {
 			logger.debug("starting writer...");
-			while (true) {
-				try {
-					// this call blocks until the lock on the queue is released
-					logger.trace("writer checking message queue");
-					Msg msg = writeQueue.take();
-					if (msg.getClass().isInstance(ShutdownMsg.class)) {
-						// exit the thread we're shutdown
-						logger.info("Exiting writter");
-						return;
-					}
-					if (msg.getData() == null) {
-						logger.error("found null message in write queue!");
-					} else {
-						logger.info("writing ({}): {}", msg.getQuietTime(), msg);
-						// To debug race conditions during startup (i.e. make the .items
-						// file definitions be available *before* the modem link records,
-						// slow down the modem traffic with the following statement:
-						// Thread.sleep(500);
-						synchronized (reader.getRequestReplyLock()) {
-							ioStream.write(msg.getData());
+			try {
+				while (true) {
+					try {
+						// this call blocks until the lock on the queue is released
+						logger.trace("writer checking message queue");
+						Msg msg = writeQueue.take();
+						if (msg.getClass().isInstance(ShutdownMsg.class)) {
+							// exit the thread we're shutdown
+							logger.info("Exiting writter");
+							return;
+						}
+						if (msg.getData() == null) {
+							logger.error("found null message in write queue!");
+						} else {
+							logger.debug("writing ({}): {}", msg.getQuietTime(), msg);
+							// To debug race conditions during startup (i.e. make the .items
+							// file definitions be available *before* the modem link records,
+							// slow down the modem traffic with the following statement:
+							// Thread.sleep(500);
+							synchronized (reader.getRequestReplyLock()) {
+								ioStream.write(msg.getData());
 
 //							while (reader.waitForReply()) {
 //								Thread.sleep(WAIT_TIME);
@@ -444,20 +411,23 @@ public class Port {
 //								ioStream.write(msg.getData());
 //							}
 
+							}
+							// if rate limited, need to sleep now.
+							if (msg.getQuietTime() > 0) {
+								Thread.sleep(msg.getQuietTime());
+							}
 						}
-						// if rate limited, need to sleep now.
-						if (msg.getQuietTime() > 0) {
-							Thread.sleep(msg.getQuietTime());
-						}
+					} catch (InterruptedException e) {
+						logger.error("got interrupted exception in write thread");
+						break;
+					} catch (Exception e) {
+						logger.error("got exception in write thread:", e);
 					}
-				} catch (InterruptedException e) {
-					logger.error("got interrupted exception in write thread");
-					break;
-				} catch (Exception e) {
-					logger.error("got exception in write thread:", e);
 				}
+				logger.debug("exiting writer thread!");
+			} catch (Throwable t) {
+				logger.error("Exception thrown, thread exiting", t);
 			}
-			logger.debug("exiting writer thread!");
 		}
 	}
 
@@ -469,8 +439,8 @@ public class Port {
 
 		private List<InitializationListener> initListeners = new ArrayList<InitializationListener>();
 
-		InsteonAddress getAddress() {
-			return (device == null) ? new InsteonAddress() : (device.getAddress());
+		DeviceAddress getAddress() {
+			return (device == null) ?  null: device.getAddress();
 		}
 
 		InsteonDevice getDevice() {
@@ -485,7 +455,8 @@ public class Port {
 				}
 				if (msg.getByte("Cmd") == 0x60) {
 					// add the modem to the device list
-					InsteonAddress address = new InsteonAddress(msg.getAddress("IMAddress"));
+					logger.info("getting the modem address from the message");
+					DeviceAddress address = msg.getAddress("IMAddress");
 					logger.info("Modem device addr is:" + address.toString());
 					String prodKey = "0x000045";
 					DeviceType dt = deviceTypeLoader.getDeviceType(prodKey);
@@ -497,7 +468,7 @@ public class Port {
 						device.setProductKey(prodKey);
 						device.setIsModem(true);
 						device.setHandler(handler);
-						logger.info("found modem {} in device_types: {}", address, device.toString());
+						logger.debug("found modem {} in device_types: {}", address, device.toString());
 						modemDBBuilder.updateModemDB(address, Port.this, null);
 						notifyListeners();
 					}
@@ -511,9 +482,12 @@ public class Port {
 
 		public void initialize() {
 			try {
+				logger.info("initializing modem");
 				Msg m = Msg.makeMessage("GetIMInfo");
+				logger.info("** after make message");
 				writeMessage(m);
-			} catch (IOException e) {
+				logger.info("** after write message");
+			} catch (Throwable e) {
 				logger.error("modem init failed!", e);
 			}
 		}

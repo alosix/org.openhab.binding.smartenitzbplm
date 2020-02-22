@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
  * @author Bernd Pfrommer
  * @since 1.5.0
  */
+@Deprecated
 public abstract class MessageDispatcher {
     private static final Logger logger = LoggerFactory.getLogger(MessageDispatcher.class);
 
@@ -58,7 +59,7 @@ public abstract class MessageDispatcher {
             return false;
         }
         try {
-            InsteonAddress a = msg.getAddress("toAddress");
+            DeviceAddress a = msg.getAddress("toAddress");
             // ALL_LINK_BROADCAST and ALL_LINK_CLEANUP
             // have a valid Command1 field
             // but the CLEANUP_SUCCESS (of type ALL_LINK_BROADCAST!)

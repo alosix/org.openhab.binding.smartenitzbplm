@@ -15,6 +15,7 @@ package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
@@ -27,14 +28,14 @@ import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
  * @since 1.6.0
  */
 public class ModemDBEntry {
-    private InsteonAddress address = null;
+    private DeviceAddress address = null;
     private Port port = null;
     private ArrayList<Msg> linkRecords = new ArrayList<Msg>();
     private ArrayList<Byte> controls = new ArrayList<Byte>();
     private ArrayList<Byte> respondsTo = new ArrayList<Byte>();
 
-    public ModemDBEntry(InsteonAddress aAddr) {
-        address = aAddr;
+    public ModemDBEntry(DeviceAddress address) {
+        this.address = address;
     }
 
     public ArrayList<Msg> getLinkRecords() {

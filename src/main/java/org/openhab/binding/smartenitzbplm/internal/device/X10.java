@@ -13,6 +13,7 @@
 package org.openhab.binding.smartenitzbplm.internal.device;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 /*
@@ -63,8 +64,8 @@ public class X10 {
      * @param c house code as per X10 spec
      * @return clear text house code, i.e letter A-P
      */
-    public static String s_houseToString(byte c) {
-        String s = s_houseCodeToString.get(new Integer(c & 0xff));
+    public static String houseToString(byte c) {
+        String s = houseCodeToString.get(new Integer(c & 0xff));
         return (s == null) ? "X" : s;
     }
 
@@ -74,8 +75,8 @@ public class X10 {
      * @param c unit code per X10 spec
      * @return decoded integer, i.e. number 0-16
      */
-    public static int s_unitToInt(byte c) {
-        Integer i = s_unitCodeToInt.get(new Integer(c & 0xff));
+    public static int unitToInt(byte c) {
+        Integer i = unitCodeToInt.get(new Integer(c & 0xff));
         return (i == null) ? -1 : i;
     }
 
@@ -85,7 +86,7 @@ public class X10 {
      * @param s string to test
      * @return true if is valid X10 address
      */
-    public static boolean s_isValidAddress(String s) {
+    public static boolean isValidAddress(String s) {
         String[] parts = s.split("\\.");
         if (parts.length != 2) {
             return false;
@@ -99,10 +100,10 @@ public class X10 {
      * @param addr clear text address
      * @return byte that encodes house + unit code
      */
-    public static byte s_addressToByte(String addr) {
+    public static byte addressToByte(String addr) {
         String[] parts = addr.split("\\.");
-        int ih = s_houseStringToCode(parts[0]);
-        int iu = s_unitStringToCode(parts[1]);
+        int ih = houseStringToCode(parts[0]);
+        int iu = unitStringToCode(parts[1]);
         int itot = ih << 4 | iu;
         return (byte) (itot & 0xff);
     }
@@ -113,8 +114,8 @@ public class X10 {
      * @param s clear text house string
      * @return coded house byte
      */
-    public static int s_houseStringToCode(String s) {
-        Integer i = s_findKey(s_houseCodeToString, s);
+    public static int houseStringToCode(String s) {
+        Integer i = findKey(houseCodeToString, s);
         return (i == null) ? 0xf : i;
     }
 
@@ -124,17 +125,17 @@ public class X10 {
      * @param s string with clear text integer inside
      * @return encoded unit byte
      */
-    public static int s_unitStringToCode(String s) {
+    public static int unitStringToCode(String s) {
         try {
             Integer key = Integer.parseInt(s);
-            Integer i = s_findKey(s_unitCodeToInt, key);
+            Integer i = findKey(unitCodeToInt, key);
             return i;
         } catch (NumberFormatException e) {
         }
         return 0xf;
     }
 
-    private static <T, E> T s_findKey(HashMap<T, E> map, E value) {
+    private static <T, E> T findKey(Map<T, E> map, E value) {
         for (Entry<T, E> entry : map.entrySet()) {
             if (value.equals(entry.getValue())) {
                 return entry.getKey();
@@ -146,44 +147,44 @@ public class X10 {
     /**
      * Map between 4-bit X10 code and the house code.
      */
-    private static HashMap<Integer, String> s_houseCodeToString = new HashMap<Integer, String>();
+    private static final Map<Integer, String> houseCodeToString = new HashMap<Integer, String>();
     /**
      * Map between 4-bit X10 code and the unit code.
      */
-    private static HashMap<Integer, Integer> s_unitCodeToInt = new HashMap<Integer, Integer>();
+    private static final Map<Integer, Integer> unitCodeToInt = new HashMap<Integer, Integer>();
 
     static {
-        s_houseCodeToString.put(0x6, "A");
-        s_unitCodeToInt.put(0x6, 1);
-        s_houseCodeToString.put(0xe, "B");
-        s_unitCodeToInt.put(0xe, 2);
-        s_houseCodeToString.put(0x2, "C");
-        s_unitCodeToInt.put(0x2, 3);
-        s_houseCodeToString.put(0xa, "D");
-        s_unitCodeToInt.put(0xa, 4);
-        s_houseCodeToString.put(0x1, "E");
-        s_unitCodeToInt.put(0x1, 5);
-        s_houseCodeToString.put(0x9, "F");
-        s_unitCodeToInt.put(0x9, 6);
-        s_houseCodeToString.put(0x5, "G");
-        s_unitCodeToInt.put(0x5, 7);
-        s_houseCodeToString.put(0xd, "H");
-        s_unitCodeToInt.put(0xd, 8);
-        s_houseCodeToString.put(0x7, "I");
-        s_unitCodeToInt.put(0x7, 9);
-        s_houseCodeToString.put(0xf, "J");
-        s_unitCodeToInt.put(0xf, 10);
-        s_houseCodeToString.put(0x3, "K");
-        s_unitCodeToInt.put(0x3, 11);
-        s_houseCodeToString.put(0xb, "L");
-        s_unitCodeToInt.put(0xb, 12);
-        s_houseCodeToString.put(0x0, "M");
-        s_unitCodeToInt.put(0x0, 13);
-        s_houseCodeToString.put(0x8, "N");
-        s_unitCodeToInt.put(0x8, 14);
-        s_houseCodeToString.put(0x4, "O");
-        s_unitCodeToInt.put(0x4, 15);
-        s_houseCodeToString.put(0xc, "P");
-        s_unitCodeToInt.put(0xc, 16);
+        houseCodeToString.put(0x6, "A");
+        unitCodeToInt.put(0x6, 1);
+        houseCodeToString.put(0xe, "B");
+        unitCodeToInt.put(0xe, 2);
+        houseCodeToString.put(0x2, "C");
+        unitCodeToInt.put(0x2, 3);
+        houseCodeToString.put(0xa, "D");
+        unitCodeToInt.put(0xa, 4);
+        houseCodeToString.put(0x1, "E");
+        unitCodeToInt.put(0x1, 5);
+        houseCodeToString.put(0x9, "F");
+        unitCodeToInt.put(0x9, 6);
+        houseCodeToString.put(0x5, "G");
+        unitCodeToInt.put(0x5, 7);
+        houseCodeToString.put(0xd, "H");
+        unitCodeToInt.put(0xd, 8);
+        houseCodeToString.put(0x7, "I");
+        unitCodeToInt.put(0x7, 9);
+        houseCodeToString.put(0xf, "J");
+        unitCodeToInt.put(0xf, 10);
+        houseCodeToString.put(0x3, "K");
+        unitCodeToInt.put(0x3, 11);
+        houseCodeToString.put(0xb, "L");
+        unitCodeToInt.put(0xb, 12);
+        houseCodeToString.put(0x0, "M");
+        unitCodeToInt.put(0x0, 13);
+        houseCodeToString.put(0x8, "N");
+        unitCodeToInt.put(0x8, 14);
+        houseCodeToString.put(0x4, "O");
+        unitCodeToInt.put(0x4, 15);
+        houseCodeToString.put(0xc, "P");
+        unitCodeToInt.put(0xc, 16);
     }
 }

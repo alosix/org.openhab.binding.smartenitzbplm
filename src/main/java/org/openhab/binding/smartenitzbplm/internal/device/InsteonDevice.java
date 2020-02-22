@@ -47,51 +47,53 @@ public class InsteonDevice {
 		INITIALIZED, POLLING
 	}
 
-	private InsteonAddress m_address = new InsteonAddress();
-	private long m_pollInterval = -1L; // in milliseconds
-	private HashMap<String, DeviceFeature> m_features = new HashMap<String, DeviceFeature>();
-	private String m_productKey = null;
-	private Long m_lastTimePolled = 0L;
-	private Long m_lastMsgReceived = 0L;
-	private boolean m_isModem = false;
-	private PriorityQueue<QEntry> m_requestQueue = new PriorityQueue<QEntry>();
-	private DeviceFeature m_featureQueried = null;
 	/** need to wait after query to avoid misinterpretation of duplicate replies */
 	private static final int QUIET_TIME_DIRECT_MESSAGE = 2000;
 	/** how far to space out poll messages */
 	private static final int TIME_BETWEEN_POLL_MESSAGES = 1500;
-	private long m_lastQueryTime = 0L;
-	private boolean m_hasModemDBEntry = false;
-	private DeviceStatus m_status = DeviceStatus.INITIALIZED;
+	
+	private DeviceAddress address = null;
+	private long pollInterval = -1L; // in milliseconds
+	private HashMap<String, DeviceFeature> features = new HashMap<String, DeviceFeature>();
+	private String productKey = null;
+	private Long lastTimePolled = 0L;
+	private Long lastMsgReceived = 0L;
+	private boolean isModem = false;
+	private PriorityQueue<QEntry> requestQueue = new PriorityQueue<QEntry>();
+	private DeviceFeature featureQueried = null;
+
+	private long lastQueryTime = 0L;
+	private boolean hasModemDBEntry = false;
+	private DeviceStatus status = DeviceStatus.INITIALIZED;
 	private ZBPLMHandler handler;
 
 	/**
 	 * Constructor
 	 */
 	public InsteonDevice() {
-		m_lastMsgReceived = System.currentTimeMillis();
+		lastMsgReceived = System.currentTimeMillis();
 	}
 
 	// --------------------- simple getters -----------------------------
 
 	public boolean hasProductKey() {
-		return m_productKey != null;
+		return productKey != null;
 	}
 
 	public String getProductKey() {
-		return m_productKey;
+		return productKey;
 	}
 
 	public boolean hasModemDBEntry() {
-		return m_hasModemDBEntry;
+		return hasModemDBEntry;
 	}
 
 	public DeviceStatus getStatus() {
-		return m_status;
+		return status;
 	}
 
-	public InsteonAddress getAddress() {
-		return (m_address);
+	public DeviceAddress getAddress() {
+		return (address);
 	}
 
 
@@ -100,39 +102,33 @@ public class InsteonDevice {
 	}
 
 	public long getPollInterval() {
-		return m_pollInterval;
+		return pollInterval;
 	}
 
 	public boolean isModem() {
-		return m_isModem;
+		return isModem;
 	}
 
 	public DeviceFeature getFeature(String f) {
-		return m_features.get(f);
+		return features.get(f);
 	}
 
 	public HashMap<String, DeviceFeature> getFeatures() {
-		return m_features;
+		return features;
 	}
 
-	public byte getX10HouseCode() {
-		return (m_address.getX10HouseCode());
-	}
 
-	public byte getX10UnitCode() {
-		return (m_address.getX10UnitCode());
-	}
 
 	public boolean hasProductKey(String key) {
-		return m_productKey != null && m_productKey.equals(key);
+		return productKey != null && productKey.equals(key);
 	}
 
 	public boolean hasValidPollingInterval() {
-		return (m_pollInterval > 0);
+		return (pollInterval > 0);
 	}
 
 	public long getPollOverDueTime() {
-		return (m_lastTimePolled - m_lastMsgReceived);
+		return (lastTimePolled - lastMsgReceived);
 	}
 
 	public ZBPLMHandler getHandler()  {
@@ -144,8 +140,8 @@ public class InsteonDevice {
 	}
 
 	public boolean hasAnyListeners() {
-		synchronized (m_features) {
-			for (DeviceFeature f : m_features.values()) {
+		synchronized (features) {
+			for (DeviceFeature f : features.values()) {
 				if (f.hasListeners()) {
 					return true;
 				}
@@ -156,42 +152,42 @@ public class InsteonDevice {
 	// --------------------- simple setters -----------------------------
 
 	public void setStatus(DeviceStatus aI) {
-		m_status = aI;
+		status = aI;
 	}
 
 	public void setHasModemDBEntry(boolean b) {
-		m_hasModemDBEntry = b;
+		hasModemDBEntry = b;
 	}
 
-	public void setAddress(InsteonAddress ia) {
-		m_address = ia;
+	public void setAddress(DeviceAddress ia) {
+		address = ia;
 	}
 
 
 	public void setIsModem(boolean f) {
-		m_isModem = f;
+		isModem = f;
 	}
 
 	public void setProductKey(String pk) {
-		m_productKey = pk;
+		productKey = pk;
 	}
 
 	public void setPollInterval(long pi) {
-		logger.trace("setting poll interval for {} to {} ", m_address, pi);
+		logger.trace("setting poll interval for {} to {} ", address, pi);
 		if (pi > 0) {
-			m_pollInterval = pi;
+			pollInterval = pi;
 		}
 	}
 
 	public void setFeatureQueried(DeviceFeature f) {
-		synchronized (m_requestQueue) {
-			m_featureQueried = f;
+		synchronized (requestQueue) {
+			featureQueried = f;
 		}
 	};
 
 	public DeviceFeature getFeatureQueried() {
-		synchronized (m_requestQueue) {
-			return (m_featureQueried);
+		synchronized (requestQueue) {
+			return (featureQueried);
 		}
 	};
 
@@ -205,8 +201,8 @@ public class InsteonDevice {
 	 */
 	public boolean removeFeatureListener(String aItemName) {
 		boolean removedListener = false;
-		synchronized (m_features) {
-			for (Iterator<Entry<String, DeviceFeature>> it = m_features.entrySet().iterator(); it.hasNext();) {
+		synchronized (features) {
+			for (Iterator<Entry<String, DeviceFeature>> it = features.entrySet().iterator(); it.hasNext();) {
 				DeviceFeature f = it.next().getValue();
 				if (f.removeListener(aItemName)) {
 					removedListener = true;
@@ -244,9 +240,9 @@ public class InsteonDevice {
 	public void doPoll(long delay) {
 		long now = System.currentTimeMillis();
 		ArrayList<QEntry> l = new ArrayList<QEntry>();
-		synchronized (m_features) {
+		synchronized (features) {
 			int spacing = 0;
-			for (DeviceFeature i : m_features.values()) {
+			for (DeviceFeature i : features.values()) {
 				if (i.hasListeners()) {
 					Msg m = i.makePollMsg();
 					if (m != null) {
@@ -259,16 +255,16 @@ public class InsteonDevice {
 		if (l.isEmpty()) {
 			return;
 		}
-		synchronized (m_requestQueue) {
+		synchronized (requestQueue) {
 			for (QEntry e : l) {
-				m_requestQueue.add(e);
+				requestQueue.add(e);
 			}
 		}
 		RequestQueueManager.s_instance().addQueue(this, now + delay);
 
 		if (!l.isEmpty()) {
-			synchronized (m_lastTimePolled) {
-				m_lastTimePolled = now;
+			synchronized (lastTimePolled) {
+				lastTimePolled = now;
 			}
 		}
 	}
@@ -280,13 +276,13 @@ public class InsteonDevice {
 	 * @param msg      the incoming message
 	 */
 	public void handleMessage(Msg msg) {
-		synchronized (m_lastMsgReceived) {
-			m_lastMsgReceived = System.currentTimeMillis();
+		synchronized (lastMsgReceived) {
+			lastMsgReceived = System.currentTimeMillis();
 		}
-		synchronized (m_features) {
+		synchronized (features) {
 			// first update all features that are
 			// not status features
-			for (DeviceFeature f : m_features.values()) {
+			for (DeviceFeature f : features.values()) {
 				if (!f.isStatusFeature()) {
 					logger.debug("----- applying message to feature: {}", f.getName());
 					if (f.handleMessage(msg, handler)) {
@@ -300,7 +296,7 @@ public class InsteonDevice {
 			}
 			// then update all the status features,
 			// e.g. when the device was last updated
-			for (DeviceFeature f : m_features.values()) {
+			for (DeviceFeature f : features.values()) {
 				if (f.isStatusFeature()) {
 					f.handleMessage(msg, handler);
 				}
@@ -308,114 +304,7 @@ public class InsteonDevice {
 		}
 	}
 
-	/**
-	 * Helper method to make standard message
-	 * 
-	 * @param flags
-	 * @param cmd1
-	 * @param cmd2
-	 * @return standard message
-	 * @throws FieldException
-	 * @throws IOException
-	 */
-	public Msg makeStandardMessage(byte flags, byte cmd1, byte cmd2) throws FieldException, IOException {
-		return (makeStandardMessage(flags, cmd1, cmd2, -1));
-	}
-
-	/**
-	 * Helper method to make standard message, possibly with group
-	 * 
-	 * @param flags
-	 * @param cmd1
-	 * @param cmd2
-	 * @param group (-1 if not a group message)
-	 * @return standard message
-	 * @throws FieldException
-	 * @throws IOException
-	 */
-	public Msg makeStandardMessage(byte flags, byte cmd1, byte cmd2, int group) throws FieldException, IOException {
-		Msg m = Msg.makeMessage("SendStandardMessage");
-		InsteonAddress addr = null;
-		if (group != -1) {
-			flags |= 0xc0; // mark message as group message
-			// and stash the group number into the address
-			addr = new InsteonAddress((byte) 0, (byte) 0, (byte) (group & 0xff));
-		} else {
-			addr = getAddress();
-		}
-		m.setAddress("toAddress", addr);
-		m.setByte("messageFlags", flags);
-		m.setByte("command1", cmd1);
-		m.setByte("command2", cmd2);
-		return m;
-	}
-
-	public Msg makeX10Message(byte rawX10, byte X10Flag) throws FieldException, IOException {
-		Msg m = Msg.makeMessage("SendX10Message");
-		m.setByte("rawX10", rawX10);
-		m.setByte("X10Flag", X10Flag);
-		m.setQuietTime(300L);
-		return m;
-	}
-
-	/**
-	 * Helper method to make extended message
-	 * 
-	 * @param flags
-	 * @param cmd1
-	 * @param cmd2
-	 * @return extended message
-	 * @throws FieldException
-	 * @throws IOException
-	 */
-	public Msg makeExtendedMessage(byte flags, byte cmd1, byte cmd2) throws FieldException, IOException {
-		return makeExtendedMessage(flags, cmd1, cmd2, new byte[] {});
-	}
-
-	/**
-	 * Helper method to make extended message
-	 * 
-	 * @param flags
-	 * @param cmd1
-	 * @param cmd2
-	 * @param data  array with userdata
-	 * @return extended message
-	 * @throws FieldException
-	 * @throws IOException
-	 */
-	public Msg makeExtendedMessage(byte flags, byte cmd1, byte cmd2, byte[] data) throws FieldException, IOException {
-		Msg m = Msg.makeMessage("SendExtendedMessage");
-		m.setAddress("toAddress", getAddress());
-		m.setByte("messageFlags", (byte) (((flags & 0xff) | 0x10) & 0xff));
-		m.setByte("command1", cmd1);
-		m.setByte("command2", cmd2);
-		m.setUserData(data);
-		m.setCRC();
-		return m;
-	}
-
-	/**
-	 * Helper method to make extended message, but with different CRC calculation
-	 * 
-	 * @param flags
-	 * @param cmd1
-	 * @param cmd2
-	 * @param data  array with user data
-	 * @return extended message
-	 * @throws FieldException
-	 * @throws IOException
-	 */
-	public Msg makeExtendedMessageCRC2(byte flags, byte cmd1, byte cmd2, byte[] data)
-			throws FieldException, IOException {
-		Msg m = Msg.makeMessage("SendExtendedMessage");
-		m.setAddress("toAddress", getAddress());
-		m.setByte("messageFlags", (byte) (((flags & 0xff) | 0x10) & 0xff));
-		m.setByte("command1", cmd1);
-		m.setByte("command2", cmd2);
-		m.setUserData(data);
-		m.setCRC2();
-		return m;
-	}
+	
 
 	/**
 	 * Called by the RequestQueueManager when the queue has expired
@@ -424,30 +313,30 @@ public class InsteonDevice {
 	 * @return time when to schedule the next message (timeNow + quietTime)
 	 */
 	public long processRequestQueue(long timeNow) {
-		synchronized (m_requestQueue) {
-			if (m_requestQueue.isEmpty()) {
+		synchronized (requestQueue) {
+			if (requestQueue.isEmpty()) {
 				return 0L;
 			}
-			if (m_featureQueried != null) {
+			if (featureQueried != null) {
 				// A feature has been queried, but
 				// the response has not been digested yet.
 				// Must wait for the query to be processed.
-				long dt = timeNow - (m_lastQueryTime + m_featureQueried.getDirectAckTimeout());
+				long dt = timeNow - (lastQueryTime + featureQueried.getDirectAckTimeout());
 				if (dt < 0) {
-					logger.debug("still waiting for query reply from {} for another {} usec", m_address, -dt);
+					logger.debug("still waiting for query reply from {} for another {} usec", address, -dt);
 					return (timeNow + 2000L); // retry soon
 				} else {
-					logger.debug("gave up waiting for query reply from device {}", m_address);
+					logger.debug("gave up waiting for query reply from device {}", address);
 				}
 			}
-			QEntry qe = m_requestQueue.poll(); // take it off the queue!
+			QEntry qe = requestQueue.poll(); // take it off the queue!
 			if (!qe.getMsg().isBroadcast()) {
 				logger.debug("qe taken off direct: {} {}", qe.getFeature(), qe.getMsg());
-				m_lastQueryTime = timeNow;
+				lastQueryTime = timeNow;
 				// mark feature as pending
 				qe.getFeature().setQueryStatus(DeviceFeature.QueryStatus.QUERY_PENDING);
 				// also mark this queue as pending so there is no doubt
-				m_featureQueried = qe.getFeature();
+				featureQueried = qe.getFeature();
 			} else {
 				logger.debug("qe taken off bcast: {} {}", qe.getFeature(), qe.getMsg());
 			}
@@ -459,7 +348,7 @@ public class InsteonDevice {
 				logger.error("message write failed for msg {}", qe.getMsg(), e);
 			}
 			// figure out when the request queue should be checked next
-			QEntry qnext = m_requestQueue.peek();
+			QEntry qnext = requestQueue.peek();
 			long nextExpTime = (qnext == null ? 0L : qnext.getExpirationTime());
 			long nextTime = Math.max(timeNow + quietTime, nextExpTime);
 			logger.debug("next request queue processed in {} msec, quiettime = {}", nextTime - timeNow, quietTime);
@@ -488,8 +377,8 @@ public class InsteonDevice {
 	 */
 	public void enqueueDelayedMessage(Msg m, DeviceFeature f, long delay) {
 		long now = System.currentTimeMillis();
-		synchronized (m_requestQueue) {
-			m_requestQueue.add(new QEntry(f, m, now + delay));
+		synchronized (requestQueue) {
+			requestQueue.add(new QEntry(f, m, now + delay));
 		}
 		if (!m.isBroadcast()) {
 			m.setQuietTime(QUIET_TIME_DIRECT_MESSAGE);
@@ -526,7 +415,7 @@ public class InsteonDevice {
 
 	private void connectFeatures(String gn, DeviceFeature fg, ArrayList<String> features) {
 		for (String fs : features) {
-			DeviceFeature f = m_features.get(fs);
+			DeviceFeature f = this.features.get(fs);
 			if (f == null) {
 				logger.error("feature group {} references unknown feature {}", gn, fs);
 			} else {
@@ -538,15 +427,15 @@ public class InsteonDevice {
 
 	private void addFeature(String name, DeviceFeature f) {
 		f.setDevice(this);
-		synchronized (m_features) {
-			m_features.put(name, f);
+		synchronized (features) {
+			features.put(name, f);
 		}
 	}
 
 	@Override
 	public String toString() {
-		String s = m_address.toString();
-		for (Entry<String, DeviceFeature> f : m_features.entrySet()) {
+		String s = address.toString();
+		for (Entry<String, DeviceFeature> f : features.entrySet()) {
 			s += "|" + f.getKey() + "->" + f.getValue().toString();
 		}
 		return s;

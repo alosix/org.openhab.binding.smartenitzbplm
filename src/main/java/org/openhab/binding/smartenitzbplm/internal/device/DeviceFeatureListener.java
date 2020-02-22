@@ -14,6 +14,7 @@ package org.openhab.binding.smartenitzbplm.internal.device;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.eclipse.smarthome.core.events.EventPublisher;
 import org.eclipse.smarthome.core.library.types.OnOffType;
@@ -31,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * @author Bernd Pfrommer
  * @since 1.6.0
  */
-
+@Deprecated
 public class DeviceFeatureListener {
     private static final Logger logger = LoggerFactory.getLogger(DeviceFeatureListener.class);
 
@@ -44,7 +45,7 @@ public class DeviceFeatureListener {
     private EventPublisher m_eventPublisher = null;
     private HashMap<String, String> m_parameters = new HashMap<String, String>();
     private HashMap<Class<?>, State> m_state = new HashMap<Class<?>, State>();
-    private ArrayList<InsteonAddress> m_relatedDevices = new ArrayList<InsteonAddress>();
+    private List<DeviceAddress> m_relatedDevices = new ArrayList<>();
     private ZBPLMHandler m_binding = null;
     private final static int TIME_DELAY_POLL_RELATED_MSEC = 5000;
 
@@ -169,12 +170,12 @@ public class DeviceFeatureListener {
         }
         String[] devs = d.split("\\+");
         for (String dev : devs) {
-            InsteonAddress a = InsteonAddress.s_parseAddress(dev);
-            if (a == null) {
-                logger.error("invalid insteon address: {}", a);
+        	DeviceAddress address = DeviceAddressFactory.fromString(dev);
+            if (address == null) {
+                logger.error("invalid address: {}", address);
                 continue;
             }
-            m_relatedDevices.add(a);
+            m_relatedDevices.add(address);
         }
     }
 
@@ -183,7 +184,7 @@ public class DeviceFeatureListener {
      * by the "related" keyword
      */
     private void pollRelatedDevices() {
-        for (InsteonAddress a : m_relatedDevices) {
+        for (DeviceAddress a : m_relatedDevices) {
             logger.debug("polling related device {} in {} ms", a, TIME_DELAY_POLL_RELATED_MSEC);
             // TODO: jwp Reimplement
 //            InsteonDevice d = m_binding.getDevice(a);

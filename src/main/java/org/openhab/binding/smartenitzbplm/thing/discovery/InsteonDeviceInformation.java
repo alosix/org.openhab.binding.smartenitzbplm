@@ -1,7 +1,6 @@
 package org.openhab.binding.smartenitzbplm.thing.discovery;
 
-import org.eclipse.smarthome.core.thing.Bridge;
-import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 
 /**
@@ -11,7 +10,7 @@ import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
  *
  */
 public class InsteonDeviceInformation {
-	private InsteonAddress address;
+	private DeviceAddress address;
 	private byte deviceCategory;
 	private byte deviceSubCategory;
 	private byte firmwareVersion;
@@ -35,10 +34,10 @@ public class InsteonDeviceInformation {
 	public void setFirmwareVersion(byte firmwareVersion) {
 		this.firmwareVersion = firmwareVersion;
 	}
-	public InsteonAddress getAddress() {
+	public DeviceAddress getAddress() {
 		return address;
 	}
-	public void setAddress(InsteonAddress address) {
+	public void setAddress(DeviceAddress address) {
 		this.address = address;
 	}
 	public ZBPLMHandler getHandler() {

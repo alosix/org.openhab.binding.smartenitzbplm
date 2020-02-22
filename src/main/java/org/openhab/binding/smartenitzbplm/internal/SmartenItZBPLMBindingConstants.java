@@ -52,11 +52,42 @@ public class SmartenItZBPLMBindingConstants {
 
     // Message Constants
     public static final String SEND_STANDARD_MESSAGE = "SendStandardMessage";
-    public static final String SEND_STANDARD_MESSAGE_RECEIVED = "StandardMessageReceived";
+    public static final String SEND_EXTENDED_MESSAGE = "SendExtendedMessage";
+    public static final String STANDARD_MESSAGE_RECEIVED = "StandardMessageReceived";
     
     public static final String GET_IM_INFO_REPLY = "GetIMInfoReply";
 	public static final String FIRMWARE_VERSION = "FirmwareVersion";
 	public static final String DEVICE_SUB_CATEGORY = "DeviceSubCategory";
 	public static final String DEVICE_CATEGORY = "DeviceCategory";
 	public static final String IM_ADDRESS = "IMAddress";
+	
+	public static final String TO_ADDRESS = "toAddress";
+	public static final String FROM_ADDRESS = "fromAddress";
+	
+	public static final String MESSAGE_FLAGS = "messageFlags";
+	public static final String RECORD_FLAGS = "recordFlags";
+	public static final String CONTROL_CODE = "controlCode";
+	
+	public static final String COMMAND_1 = "command1";
+	public static final String COMMAND_2 = "command2";
+	
+	public static final String USER_DATA_1 = "userData1";
+	public static final String USER_DATA_2 = "userData2";
+	public static final String USER_DATA_3 = "userData3";
+	public static final String USER_DATA_4 = "userData4";
+	public static final String USER_DATA_5 = "userData5";
+	public static final String USER_DATA_6 = "userData6";
+	public static final String USER_DATA_7 = "userData7";
+	public static final String USER_DATA_8 = "userData8";
+	public static final String USER_DATA_9 = "userData9";
+	public static final String USER_DATA_10 = "userData10";
+	public static final String USER_DATA_11 = "userData11";
+	public static final String USER_DATA_12 = "userData12";
+	public static final String USER_DATA_13 = "userData13";
+	public static final String USER_DATA_14 = "userData14";
+	
+	public static final String LINK_DATA_1 = "LinkData1";
+	public static final String LINK_DATA_2 = "LinkData2";
+	public static final String LINK_DATA_3 = "LinkData3";
+	
 }

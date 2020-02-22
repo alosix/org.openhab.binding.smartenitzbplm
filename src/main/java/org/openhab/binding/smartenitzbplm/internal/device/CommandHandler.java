@@ -27,6 +27,7 @@ import org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMConfiguration;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceFeatureListener.StateChangeType;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
+import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -196,7 +197,7 @@ public abstract class CommandHandler {
                 if (ext == 1 || ext == 2) {
                     byte[] data = new byte[] { (byte) getIntParameter("d1", 0), (byte) getIntParameter("d2", 0),
                             (byte) getIntParameter("d3", 0) };
-                    m = dev.makeExtendedMessage((byte) 0x0f, (byte) direc, (byte) level, data);
+                    m = MsgFactory.makeExtendedMessage(dev.getAddress(), (byte) 0x0f, (byte) direc, (byte) level, data);
                     logger.info("{}: was an extended message for device {}", nm(), dev.getAddress());
                     if (ext == 1) {
                         m.setCRC();
@@ -204,7 +205,7 @@ public abstract class CommandHandler {
                         m.setCRC2();
                     }
                 } else {
-                    m = dev.makeStandardMessage((byte) 0x0f, (byte) direc, (byte) level, getGroup(conf));
+                    m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) direc, (byte) level, getGroup(conf));
                 }
                 logger.info("Sending message to {}", dev.getAddress());
                 dev.enqueueMessage(m, m_feature);
@@ -227,12 +228,12 @@ public abstract class CommandHandler {
             try {
                 if (cmd == OnOffType.ON) {
                     int level = getMaxLightLevel(conf, 0xff);
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x12, (byte) level, getGroup(conf));
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x12, (byte) level, getGroup(conf));
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent fast on to switch {} level {}", nm(), dev.getAddress(),
                             level == 0xff ? "on" : level);
                 } else if (cmd == OnOffType.OFF) {
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x14, (byte) 0x00, getGroup(conf));
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x14, (byte) 0x00, getGroup(conf));
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent fast off to switch {}", nm(), dev.getAddress());
                 }
@@ -257,7 +258,7 @@ public abstract class CommandHandler {
                     double ramptime = getRampTime(conf, 0);
                     int ramplevel = getRampLevel(conf, 100);
                     byte cmd2 = encode(ramptime, ramplevel);
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, getOnCmd(), cmd2, getGroup(conf));
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, getOnCmd(), cmd2, getGroup(conf));
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent ramp on to switch {} time {} level {} cmd1 {}", nm(), dev.getAddress(),
                             ramptime, ramplevel, getOnCmd());
@@ -265,7 +266,7 @@ public abstract class CommandHandler {
                     double ramptime = getRampTime(conf, 0);
                     int ramplevel = getRampLevel(conf, 0 /* ignored */);
                     byte cmd2 = encode(ramptime, ramplevel);
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, getOffCmd(), cmd2, getGroup(conf));
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, getOffCmd(), cmd2, getGroup(conf));
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent ramp off to switch {} time {} cmd1 {}", nm(), dev.getAddress(), ramptime,
                             getOffCmd());
@@ -296,7 +297,7 @@ public abstract class CommandHandler {
                     int v = ((DecimalType) cmd).intValue();
                     int cmd1 = (v != 1) ? 0x17 : 0x18; // start or stop
                     int cmd2 = (v == 2) ? 0x01 : 0; // up or down
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) cmd1, (byte) cmd2, getGroup(conf));
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) cmd1, (byte) cmd2, getGroup(conf));
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: cmd {} sent manual change {} {} to {}", nm(), v, (cmd1 == 0x17) ? "START" : "STOP",
                             (cmd2 == 0x01) ? "UP" : "DOWN", dev.getAddress());
@@ -332,7 +333,7 @@ public abstract class CommandHandler {
                     }
                     logger.info("{}: sending {} broadcast to group {}", nm(), (cmd1 == 0x11) ? "ON" : "OFF",
                             getGroup(conf));
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, cmd1, value, group);
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, cmd1, value, group);
                     dev.enqueueMessage(m, m_feature);
                 }
             } catch (IOException e) {
@@ -373,12 +374,12 @@ public abstract class CommandHandler {
             try {
                 int button = this.getIntParameter("button", -1);
                 if (cmd == OnOffType.ON) {
-                    Msg m = dev.makeExtendedMessage((byte) 0x1f, (byte) 0x2e, (byte) 0x00,
+                    Msg m = MsgFactory.makeExtendedMessage(dev.getAddress(), (byte) 0x1f, (byte) 0x2e, (byte) 0x00,
                             new byte[] { (byte) button, (byte) 0x09, (byte) 0x01 });
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to switch {} on", nm(), dev.getAddress());
                 } else if (cmd == OnOffType.OFF) {
-                    Msg m = dev.makeExtendedMessage((byte) 0x1f, (byte) 0x2e, (byte) 0x00,
+                    Msg m = MsgFactory.makeExtendedMessage(dev.getAddress(), (byte) 0x1f, (byte) 0x2e, (byte) 0x00,
                             new byte[] { (byte) button, (byte) 0x09, (byte) 0x00 });
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to switch {} off", nm(), dev.getAddress());
@@ -399,14 +400,15 @@ public abstract class CommandHandler {
         @Override
         public void handleCommand(SmartenItZBPLMConfiguration conf, Command cmd, InsteonDevice dev) {
             try {
-                byte houseCode = dev.getX10HouseCode();
-                byte houseUnitCode = (byte) (houseCode << 4 | dev.getX10UnitCode());
+            	X10Address address = (X10Address) dev.getAddress();
+                byte houseCode = address.getX10HouseCode();
+                byte houseUnitCode = (byte) (houseCode << 4 | address.getX10UnitCode());
                 if (cmd == OnOffType.ON || cmd == OnOffType.OFF) {
                     byte houseCommandCode = (byte) (houseCode << 4
                             | (cmd == OnOffType.ON ? X10.Command.ON.code() : X10.Command.OFF.code()));
-                    Msg munit = dev.makeX10Message(houseUnitCode, (byte) 0x00); // send unit code
+                    Msg munit = MsgFactory.makeX10Message(houseUnitCode, (byte) 0x00); // send unit code
                     dev.enqueueMessage(munit, m_feature);
-                    Msg mcmd = dev.makeX10Message(houseCommandCode, (byte) 0x80); // send command code
+                    Msg mcmd = MsgFactory.makeX10Message(houseCommandCode, (byte) 0x80); // send command code
                     dev.enqueueMessage(mcmd, m_feature);
                     String onOff = cmd == OnOffType.ON ? "ON" : "OFF";
                     logger.info("{}: sent msg to switch {} {}", nm(), dev.getAddress(), onOff);
@@ -431,9 +433,10 @@ public abstract class CommandHandler {
                 // I did not have hardware that would respond to the PRESET_DIM codes.
                 // This code path needs testing.
                 //
-                byte houseCode = dev.getX10HouseCode();
-                byte houseUnitCode = (byte) (houseCode << 4 | dev.getX10UnitCode());
-                Msg munit = dev.makeX10Message(houseUnitCode, (byte) 0x00); // send unit code
+            	X10Address address = (X10Address) dev.getAddress();
+                byte houseCode = address.getX10HouseCode();
+                byte houseUnitCode = (byte) (houseCode << 4 | address.getX10UnitCode());
+                Msg munit = MsgFactory.makeX10Message(houseUnitCode, (byte) 0x00); // send unit code
                 dev.enqueueMessage(munit, m_feature);
                 PercentType pc = (PercentType) cmd;
                 logger.debug("{}: changing level of {} to {}", nm(), dev.getAddress(), pc.intValue());
@@ -445,7 +448,7 @@ public abstract class CommandHandler {
                 }
                 houseCode = (byte) s_X10CodeForLevel[level];
                 cmdCode |= (houseCode << 4);
-                Msg mcmd = dev.makeX10Message(cmdCode, (byte) 0x80); // send command code
+                Msg mcmd = MsgFactory.makeX10Message(cmdCode, (byte) 0x80); // send command code
                 dev.enqueueMessage(mcmd, m_feature);
             } catch (IOException e) {
                 logger.error("{}: command send i/o error: ", nm(), e);
@@ -465,14 +468,15 @@ public abstract class CommandHandler {
         @Override
         public void handleCommand(SmartenItZBPLMConfiguration conf, Command cmd, InsteonDevice dev) {
             try {
-                byte houseCode = dev.getX10HouseCode();
-                byte houseUnitCode = (byte) (houseCode << 4 | dev.getX10UnitCode());
+            	X10Address address = (X10Address) dev.getAddress();
+                byte houseCode = address.getX10HouseCode();
+                byte houseUnitCode = (byte) (houseCode << 4 | address.getX10UnitCode());
                 if (cmd == IncreaseDecreaseType.INCREASE || cmd == IncreaseDecreaseType.DECREASE) {
                     byte houseCommandCode = (byte) (houseCode << 4 | (cmd == IncreaseDecreaseType.INCREASE
                             ? X10.Command.BRIGHT.code() : X10.Command.DIM.code()));
-                    Msg munit = dev.makeX10Message(houseUnitCode, (byte) 0x00); // send unit code
+                    Msg munit = MsgFactory.makeX10Message(houseUnitCode, (byte) 0x00); // send unit code
                     dev.enqueueMessage(munit, m_feature);
-                    Msg mcmd = dev.makeX10Message(houseCommandCode, (byte) 0x80); // send command code
+                    Msg mcmd = MsgFactory.makeX10Message(houseCommandCode, (byte) 0x80); // send command code
                     dev.enqueueMessage(mcmd, m_feature);
                     String bd = cmd == IncreaseDecreaseType.INCREASE ? "BRIGHTEN" : "DIM";
                     logger.info("{}: sent msg to switch {} {}", nm(), dev.getAddress(), bd);
@@ -494,11 +498,11 @@ public abstract class CommandHandler {
         public void handleCommand(SmartenItZBPLMConfiguration conf, Command cmd, InsteonDevice dev) {
             try {
                 if (cmd == OnOffType.ON) {
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x11, (byte) 0xff);
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x11, (byte) 0xff);
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to switch {} on", nm(), dev.getAddress());
                 } else if (cmd == OnOffType.OFF) {
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x13, (byte) 0x00);
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x13, (byte) 0x00);
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to switch {} off", nm(), dev.getAddress());
                 }
@@ -535,11 +539,11 @@ public abstract class CommandHandler {
         public void handleCommand(SmartenItZBPLMConfiguration conf, Command cmd, InsteonDevice dev) {
             try {
                 if (cmd == IncreaseDecreaseType.INCREASE) {
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x15, (byte) 0x00);
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x15, (byte) 0x00);
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to brighten {}", nm(), dev.getAddress());
                 } else if (cmd == IncreaseDecreaseType.DECREASE) {
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x16, (byte) 0x00);
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x16, (byte) 0x00);
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to dimm {}", nm(), dev.getAddress());
                 }
@@ -564,11 +568,11 @@ public abstract class CommandHandler {
                 int level = (int) Math.ceil((pc.intValue() * 255.0) / 100); // round up
                 if (level > 0) { // make light on message with given level
                     level = getMaxLightLevel(conf, level);
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x11, (byte) level);
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x11, (byte) level);
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to set {} to {}", nm(), dev.getAddress(), level);
                 } else { // switch off
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x13, (byte) 0x00);
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x13, (byte) 0x00);
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to set {} to zero by switching off", nm(), dev.getAddress());
                 }
@@ -662,12 +666,12 @@ public abstract class CommandHandler {
                 if (level > 0) { // make light on message with given level
                     level = getMaxLightLevel(conf, level);
                     byte cmd2 = encode(ramptime, level);
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, getOnCmd(), cmd2);
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, getOnCmd(), cmd2);
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to set {} to {} with {} second ramp time.", nm(), dev.getAddress(), level,
                             ramptime);
                 } else { // switch off
-                    Msg m = dev.makeStandardMessage((byte) 0x0f, getOffCmd(), (byte) 0x00);
+                    Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, getOffCmd(), (byte) 0x00);
                     dev.enqueueMessage(m, m_feature);
                     logger.info("{}: sent msg to set {} to zero by switching off with {} ramp time.", nm(),
                             dev.getAddress(), ramptime);
@@ -695,12 +699,12 @@ public abstract class CommandHandler {
             try {
                 if (cmd == OnOffType.ON) {
                     if (cmdParam.equals("reset")) {
-                        Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x80, (byte) 0x00);
+                        Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x80, (byte) 0x00);
                         dev.enqueueMessage(m, m_feature);
                         logger.info("{}: sent reset msg to power meter {}", nm(), dev.getAddress());
                         m_feature.publish(OnOffType.OFF, StateChangeType.ALWAYS, "cmd", "reset");
                     } else if (cmdParam.equals("update")) {
-                        Msg m = dev.makeStandardMessage((byte) 0x0f, (byte) 0x82, (byte) 0x00);
+                        Msg m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) 0x82, (byte) 0x00);
                         dev.enqueueMessage(m, m_feature);
                         logger.info("{}: sent update msg to power meter {}", nm(), dev.getAddress());
                         m_feature.publish(OnOffType.OFF, StateChangeType.ALWAYS, "cmd", "update");
@@ -763,7 +767,7 @@ public abstract class CommandHandler {
                 if (ext == 1 || ext == 2) {
                     byte[] data = new byte[] { (byte) getIntParameter("d1", 0), (byte) getIntParameter("d2", 0),
                             (byte) getIntParameter("d3", 0) };
-                    m = dev.makeExtendedMessage((byte) 0x0f, (byte) cmd1, (byte) cmd2, data);
+                    m = MsgFactory.makeExtendedMessage(dev.getAddress(), (byte) 0x0f, (byte) cmd1, (byte) cmd2, data);
                     m.setByte(vfield, level);
                     if (ext == 1) {
                         m.setCRC();
@@ -771,7 +775,7 @@ public abstract class CommandHandler {
                         m.setCRC2();
                     }
                 } else {
-                    m = dev.makeStandardMessage((byte) 0x0f, (byte) cmd1, (byte) cmd2);
+                    m = MsgFactory.makeStandardMessage(dev.getAddress(), (byte) 0x0f, (byte) cmd1, (byte) cmd2);
                     m.setByte(vfield, level);
                 }
                 dev.enqueueMessage(m, m_feature);

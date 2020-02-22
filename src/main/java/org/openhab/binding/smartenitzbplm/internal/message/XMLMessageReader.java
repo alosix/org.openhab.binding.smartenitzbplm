@@ -103,12 +103,12 @@ public class XMLMessageReader {
             Node node = nodes.item(i);
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 if (node.getNodeName().equals("header")) {
-                    int o = s_readHeaderElement((Element) node, fieldMap);
+                    int o = readHeaderElement((Element) node, fieldMap);
                     hlength = o;
                     // Increment the offset by the header length
                     offset += o;
                 } else {
-                    Pair<Field, Object> field = s_readField((Element) node, offset);
+                    Pair<Field, Object> field = readField((Element) node, offset);
                     fieldMap.put(field.getKey(), field.getValue());
                     // Increment the offset
                     offset += field.getKey().getType().getSize();
@@ -123,10 +123,10 @@ public class XMLMessageReader {
             length = offset;
         }
 
-        return new Pair<String, Msg>(name, s_createMsg(fieldMap, length, hlength, direction));
+        return new Pair<String, Msg>(name, createMsg(fieldMap, length, hlength, direction));
     }
 
-    private static int s_readHeaderElement(Element header, Map<Field, Object> fields)
+    private static int readHeaderElement(Element header, Map<Field, Object> fields)
             throws ParsingException {
         int offset = 0;
         int headerLen = Integer.parseInt(header.getAttribute("length"));
@@ -135,7 +135,7 @@ public class XMLMessageReader {
         for (int i = 0; i < nodes.getLength(); i++) {
             Node node = nodes.item(i);
             if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Pair<Field, Object> definition = s_readField((Element) node, offset);
+                Pair<Field, Object> definition = readField((Element) node, offset);
                 if (definition != null) {
                     offset += definition.getKey().getType().getSize();
                     fields.put(definition.getKey(), definition.getValue());
@@ -149,19 +149,20 @@ public class XMLMessageReader {
         return headerLen;
     }
 
-    private static Pair<Field, Object> s_readField(Element field, int offset) {
+    private static Pair<Field, Object> readField(Element field, int offset) {
         DataType dType = DataType.s_getDataType(field.getTagName());
         // Will return blank if no name attribute
         String name = field.getAttribute("name");
         Field f = new Field(name, dType, offset);
         // Now we have field, only need value
         String sVal = field.getTextContent();
-        Object val = DataTypeParser.s_parseDataType(dType, sVal);
+        Object val  = DataTypeParser.parseDataType(dType, sVal);
+        
         Pair<Field, Object> pair = new Pair<Field, Object>(f, val);
         return pair;
     }
 
-    private static Msg s_createMsg(Map<Field, Object> values, int length, int headerLength, Msg.Direction dir)
+    private static Msg createMsg(Map<Field, Object> values, int length, int headerLength, Msg.Direction dir)
             throws FieldException {
         Msg msg = new Msg(headerLength, new byte[length], length, dir);
         for (Entry<Field, Object> e : values.entrySet()) {

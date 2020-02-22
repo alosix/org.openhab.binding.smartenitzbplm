@@ -17,6 +17,7 @@ import java.util.HashMap;
 
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
+import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +99,7 @@ public abstract class PollHandler {
                     int d1 = getIntParameter("d1", 0);
                     int d2 = getIntParameter("d2", 0);
                     int d3 = getIntParameter("d3", 0);
-                    m = d.makeExtendedMessage((byte) 0x0f, (byte) cmd1, (byte) cmd2,
+                    m = MsgFactory.makeExtendedMessage(d.getAddress(), (byte) 0x0f, (byte) cmd1, (byte) cmd2,
                             new byte[] { (byte) d1, (byte) d2, (byte) d3 });
                     if (ext == 1) {
                         m.setCRC();
@@ -106,7 +107,7 @@ public abstract class PollHandler {
                         m.setCRC2();
                     }
                 } else {
-                    m = d.makeStandardMessage((byte) 0x0f, (byte) cmd1, (byte) cmd2);
+                    m = MsgFactory.makeStandardMessage(d.getAddress(), (byte) 0x0f, (byte) cmd1, (byte) cmd2);
                 }
                 m.setQuietTime(500L);
             } catch (FieldException e) {

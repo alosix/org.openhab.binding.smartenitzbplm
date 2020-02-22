@@ -74,10 +74,10 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port, config.zbplm_baud, msgFactory);
 		this.port = new Port(this);
 		this.port.addListener(this);
-		
+
 		this.port.setModemDBBuilder(new ModemDBBuilder(this));
 		this.port.setModemDBRetryTimeout(120000); // TODO: JWP add config
-		
+
 		final Port port = this.port;
 		executorService.execute(new Runnable() {
 
@@ -89,6 +89,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 		});
 
 	}
+
 	public void setPortStatus(boolean up) {
 		if (up) {
 			this.updateStatus(ThingStatus.ONLINE);
@@ -98,28 +99,29 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	}
 
 	public void addInsteonMsgListener(final InsteonMsgListener listener) {
-		logger.info("Adding msglistener:" + listener.toString());
 		BlockingQueue<Msg> msgQueue = new LinkedBlockingDeque<Msg>();
 		messageQueues.put(listener, msgQueue);
-		
-		Runnable msgRunnable = new Runnable() {
 
+		Runnable msgRunnable = new Runnable() {
 			@Override
 			public void run() {
-				while (true) {
-					Msg msg = null;
-					try {
-						msg = msgQueue.take();
-						logger.info("Taking message:" + msg.toString());
-						if (msg == null || ShutdownMsg.class.isInstance(msg)) {
-							return;
+				try {
+					while (true) {
+						Msg msg = null;
+						try {
+							msg = msgQueue.take();
+							if (msg == null || ShutdownMsg.class.isInstance(msg)) {
+								return;
+							}
+							// Pass the message off to the listener
+							listener.onMessage(msg);
+						} catch (InterruptedException e) {
+							logger.warn("Message dispatcher interrupted");
 						}
-						// Pass the message off to the listener
-						listener.onMessage(msg);
-					} catch (InterruptedException e) {
 
 					}
-
+				} catch (Throwable t) {
+					logger.error("Exception throw in msg dispatch thread", t);
 				}
 
 			}
@@ -130,10 +132,8 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 
 	@Override
 	public void msg(Msg msg, ZBPLMHandler handler) {
-		logger.info("Got a message:" + msg.toString());
 		Collection<BlockingQueue<Msg>> values = messageQueues.values();
 		for (BlockingQueue<Msg> queue : values) {
-			logger.info("Dispatching message to queues:" + msg.toString());
 			queue.offer(msg);
 		}
 	}
@@ -157,7 +157,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	@Override
 	public void dispose() {
 		super.dispose();
-		if(this.port != null) {
+		if (this.port != null) {
 			this.port.stop();
 		}
 	}
@@ -201,5 +201,4 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 		return msgFactory;
 	}
 
-	
 }

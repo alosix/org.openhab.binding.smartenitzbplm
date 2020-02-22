@@ -72,7 +72,7 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 			// CommPortIdentifier#open will kill the whole JVM
 			Stream<SerialPortIdentifier> serialPortIdentifiers = serialPortManager.getIdentifiers();
 			if (!serialPortIdentifiers.findAny().isPresent()) {
-				logger.info("No communication ports found, cannot connect to [{}]", portName);
+				logger.warn("No communication ports found, cannot connect to [{}]", portName);
 				return false;
 			}
 
@@ -133,17 +133,18 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 								byte buffer[] = new byte[32];
 								int read = 0;
 								while ((read = inputStream.read(buffer)) > 0) {
-									logger.info("Adding bytes to msgFactory {}", read);
 									msgFactory.addData(buffer, read);
 								
 									for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
-										logger.info("processed message:" + m.toString());
 										inboundQueue.put(m);
 									}
 								}
 							} catch (IOException | InterruptedException e) {
 								logger.error("Error reading from the input stream", e);
+							} catch(Throwable t) {
+								logger.error("Thread exiting", t);
 							}
+							
 						}
 					}
 				};
@@ -181,48 +182,6 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 	}
 
 	@Override
-	public void serialEvent(SerialPortEvent event) {
-		if (false && event.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
-			try {
-				int available = inputStream.available();
-				logger.info("Processing DATA_AVAILABLE event: have {} bytes available", available);
-				byte buf[] = new byte[1024];
-				int offset = 0;
-//				while (offset != available) {
-//					if (logger.isTraceEnabled()) {
-//						logger.trace("Processing DATA_AVAILABLE event: try read  {} at offset {}", available - offset,
-//								offset);
-//					}
-//					int n = inputStream.read(buf, offset, available - offset);
-//					if (logger.isTraceEnabled()) {
-//						logger.trace("Processing DATA_AVAILABLE event: did read {} of {} at offset {}", n,
-//								available - offset, offset);
-//					}
-//					if (n <= 0) {
-//						throw new IOException(
-//								"Expected to be able to read " + available + " bytes, but saw error after " + offset);
-//					}
-//					offset += n;
-//				}
-				int read = 0;
-				while ((read = inputStream.read(buf)) > 0) {
-					logger.info("Adding bytes to inbound queue");
-					msgFactory.addData(buf, read);
-				}
-				for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
-					logger.info("processed message:" + m.toString());
-					inboundQueue.put(m);
-				}
-
-			} catch (IOException | InterruptedException e) {
-				logger.warn("Processing DATA_AVAILABLE event: received IOException in serial port event", e);
-			}
-
-		}
-
-	}
-
-	@Override
 	public String getDeviceName() {
 		return this.portName;
 	}
@@ -231,6 +190,12 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 
 		// buffer.clear();
 
+	}
+
+	@Override
+	public void serialEvent(SerialPortEvent event) {
+		logger.info("Got serial event {}", event.toString());
+		
 	}
 
 }

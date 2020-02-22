@@ -8,8 +8,8 @@ import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.thing.config.InsteonDimmerConfig;
 
 public class InsteonDimmerThingHandler extends InsteonSwitchThingHandler {
-	public InsteonDimmerThingHandler(Thing thing, ZBPLMHandler handler) {
-		super(thing, handler);
+	public InsteonDimmerThingHandler(Thing thing) {
+		super(thing);
 		
 		InsteonDimmerConfig config = getConfigAs(InsteonDimmerConfig.class);
 //		address = new InsteonAddress(config.insteon_address);

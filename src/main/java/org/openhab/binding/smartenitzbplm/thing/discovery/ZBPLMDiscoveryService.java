@@ -1,7 +1,8 @@
 package org.openhab.binding.smartenitzbplm.thing.discovery;
 
 import static java.util.stream.Collectors.toSet;
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.SEND_STANDARD_MESSAGE;
+
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 
 import java.io.IOException;
 import java.util.Map;
@@ -17,6 +18,7 @@ import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryService;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
@@ -133,21 +135,21 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 		handler.addInsteonMsgListener(this);
 
 		try {
-			Map<InsteonAddress, ModemDBEntry> entries = handler.getPort().getModemDBEntries();
+			Map<DeviceAddress, ModemDBEntry> entries = handler.getPort().getModemDBEntries();
 			
 
-			InsteonAddress modem = port.getAddress();
-			for (InsteonAddress address : entries.keySet()) {
+			DeviceAddress modem = port.getAddress();
+			for (DeviceAddress address : entries.keySet()) {
 				if (address.equals(modem)) {
 					// No need to try to discover the modem..
 					continue;
 				}
 				logger.info("Sending discovery message to:" + address.toString());
 				Msg msg = Msg.makeMessage(SEND_STANDARD_MESSAGE);
-				msg.setAddress("toAddress", address);
-				msg.setByte("messageFlags", (byte) 0x0F);
-				msg.setByte("command1", (byte) 0x10);
-				msg.setByte("command2", (byte) 0x00);
+				msg.setAddress(TO_ADDRESS, address);
+				msg.setByte(MESSAGE_FLAGS, (byte) 0x0F);
+				msg.setByte(COMMAND_1, (byte) 0x10);
+				msg.setByte(COMMAND_2, (byte) 0x00);
 				port.writeMessage(msg);
 
 				Msg reply = deviceReplyQueue.poll(10, TimeUnit.SECONDS);
@@ -164,9 +166,9 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 
 	}
 
-	private void createDiscoveryResult(InsteonAddress address, Msg msg, ZBPLMHandler handler) throws FieldException {
-		if (msg.isBroadcast() && msg.getByte("command1") == 0x01) {
-			InsteonAddress toAddress = msg.getAddr("toAddress");
+	private void createDiscoveryResult(DeviceAddress address, Msg msg, ZBPLMHandler handler) throws FieldException {
+		if (msg.isBroadcast() && msg.getByte(COMMAND_1) == 0x01) {
+			DeviceAddress toAddress = msg.getAddr(TO_ADDRESS);
 
 			InsteonDeviceInformation deviceInformation = new InsteonDeviceInformation();
 			deviceInformation.setAddress(address);
@@ -198,7 +200,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 //	}
 
 	@Override
-	public InsteonAddress getAddress() {
+	public DeviceAddress getAddress() {
 		return handler.getPort().getAddress();
 	}
 

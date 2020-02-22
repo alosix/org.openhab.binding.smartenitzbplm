@@ -12,7 +12,9 @@
  */
 package org.openhab.binding.smartenitzbplm.internal.utils;
 
+import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddressFactory;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
+import org.openhab.binding.smartenitzbplm.internal.device.NullDeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.message.DataType;
 
 /**
@@ -68,22 +70,22 @@ public class Utils {
     }
 
     public static class DataTypeParser {
-        public static Object s_parseDataType(DataType type, String val) {
+        public static Object parseDataType(DataType type, String val) {
             switch (type) {
                 case BYTE:
-                    return s_parseByte(val);
+                    return parseByte(val);
                 case INT:
-                    return s_parseInt(val);
+                    return parseInt(val);
                 case FLOAT:
-                    return s_parseFloat(val);
+                    return parseFloat(val);
                 case ADDRESS:
-                    return s_parseAddress(val);
+                    return DeviceAddressFactory.fromString(val);
                 default:
                     throw new IllegalArgumentException("Data Type not implemented in Field Value Parser!");
             }
         }
 
-        public static byte s_parseByte(String val) {
+        public static byte parseByte(String val) {
             if (val != null && !val.trim().equals("")) {
                 return (byte) Utils.from0xHexString(val.trim());
             } else {
@@ -91,7 +93,7 @@ public class Utils {
             }
         }
 
-        public static int s_parseInt(String val) {
+        public static int parseInt(String val) {
             if (val != null && !val.trim().equals("")) {
                 return Integer.parseInt(val);
             } else {
@@ -99,7 +101,7 @@ public class Utils {
             }
         }
 
-        public static float s_parseFloat(String val) {
+        public static float parseFloat(String val) {
             if (val != null && !val.trim().equals("")) {
                 return Float.parseFloat(val.trim());
             } else {
@@ -107,13 +109,7 @@ public class Utils {
             }
         }
 
-        public static InsteonAddress s_parseAddress(String val) {
-            if (val != null && !val.trim().equals("")) {
-                return InsteonAddress.s_parseAddress(val.trim());
-            } else {
-                return new InsteonAddress();
-            }
-        }
+        
     }
 
     /**
