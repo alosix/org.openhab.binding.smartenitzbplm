@@ -36,14 +36,34 @@ public class SmartenItZBPLMBindingConstants {
     // Switches 0x02 device category
     public static final ThingTypeUID THING_TYPE_TOGGLELINC_2446SW = new ThingTypeUID(BINDING_ID, "togglelinc_2466SW");
     public static final ThingTypeUID THING_TYPE_GENERIC_SWITCH = new ThingTypeUID(BINDING_ID, "insteon_generic_switch"); // if we don't have a specifc switch setup
+    public static final ThingTypeUID THING_TYPE_IOLINC_2450 = new ThingTypeUID(BINDING_ID, "iolinc_2450");
     
+    // Thermostats
+    public static final ThingTypeUID THING_TYPE_THERMOSTAT_2441TH = new ThingTypeUID(BINDING_ID, "thermostat_2441TH");
     
     // List of all Channel ids
     public static final String SWITCH_ONOFF = "switch_onoff";
     public static final String SWITCH_LEVEL = "switch_level";
+    public static final String THERMOSTAT_LOCALTEMP = "thermostat_localtemp";
+    public static final String THERMOSTAT_LOCALHUMIDITY = "thermostat_localhumidity";
+    public static final String THERMOSTAT_OUTDOORTEMP = "thermostat_outdoortemp";
+    public static final String THERMOSTAT_HEATING = "thermostat_heating";
+    public static final String THERMOSTAT_COOLING = "thermostat_cooling";
+    public static final String THERMOSTAT_SYSTEMMODE = "thermostat_systemmode";
+    public static final String THERMOSTAT_RUNNIGNMODE = "thermostat_runningmode";
+    
     
     public static final ChannelTypeUID CHANNEL_SWITCH_ONOFF = new ChannelTypeUID(BINDING_ID, SWITCH_ONOFF);
     public static final ChannelTypeUID CHANNEL_SWITCH_LEVEL = new ChannelTypeUID(BINDING_ID, SWITCH_LEVEL);
+    public static final ChannelTypeUID CHANNEL_THERMOSTAT_LOCALTEMP = new ChannelTypeUID(BINDING_ID, THERMOSTAT_LOCALTEMP);
+    public static final ChannelTypeUID CHANNEL_THERMOSTAT_LOCALHUMIDITY = new ChannelTypeUID(BINDING_ID, THERMOSTAT_LOCALHUMIDITY);
+    public static final ChannelTypeUID CHANNEL_THERMOSTAT_OUTDOORTEMP = new ChannelTypeUID(BINDING_ID, THERMOSTAT_OUTDOORTEMP);
+    public static final ChannelTypeUID CHANNEL_THERMOSTAT_HEATING = new ChannelTypeUID(BINDING_ID, THERMOSTAT_HEATING);
+    public static final ChannelTypeUID CHANNEL_THERMOSTAT_COOLING = new ChannelTypeUID(BINDING_ID, THERMOSTAT_COOLING);
+    public static final ChannelTypeUID CHANNEL_THERMOSTAT_SYSTEMMODE = new ChannelTypeUID(BINDING_ID, THERMOSTAT_SYSTEMMODE);
+    public static final ChannelTypeUID CHANNEL_THERMOSTAT_RUNNINGMODE = new ChannelTypeUID(BINDING_ID, THERMOSTAT_RUNNIGNMODE);
+    
+    
     
     
 	

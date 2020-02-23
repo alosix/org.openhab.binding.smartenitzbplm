@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import org.eclipse.smarthome.core.common.ThreadPoolManager;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -46,7 +47,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	private MsgFactory msgFactory = new MsgFactory();
 	private DeviceTypeLoader deviceTypeLoader;
 	private ZBPLMConfig config = null;
-	private ExecutorService executorService = null;
+	private ExecutorService executorService = ThreadPoolManager.getPool("smartenitzbplm-thinghandler-commands");
 
 	public ExecutorService getExecutorService() {
 		return executorService;
@@ -67,7 +68,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 
 	@Override
 	public void initialize() {
-		this.executorService = ForkJoinPool.commonPool();
+		//this.executorService = ForkJoinPool.commonPool();
 		this.ioStream = new SerialIOStream(serialPortManager, config.zbplm_port, config.zbplm_baud, msgFactory);
 		this.port = new Port(this);
 		this.port.addListener(this);

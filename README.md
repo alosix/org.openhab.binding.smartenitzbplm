@@ -31,6 +31,14 @@ _Note that it is planned to generate some part of this based on the information 
 
 _If your binding does not offer any generic configurations, you can remove this section completely._
 
+## Installation
+The bundles that are built are currently hosted out in bintray. This is alpha quality stuff so far, but feel free to put issues in for things that don't quite work.
+
+First add the bintray repo to openhab's list
+echo 'deb https://dl.bintray.com/alosix/openhab stable main' | sudo tee /etc/apt/sources.list.d/openhab2.list
+
+
+
 ## Thing Configuration
 
 _Describe what is needed to manually configure a thing, either through the (Paper) UI or via a thing-file. This should be mainly about its mandatory and optional configuration parameters. A short example entry for a thing file can help!_

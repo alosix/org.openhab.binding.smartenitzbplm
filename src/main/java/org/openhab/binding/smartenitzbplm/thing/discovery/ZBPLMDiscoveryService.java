@@ -1,8 +1,8 @@
 package org.openhab.binding.smartenitzbplm.thing.discovery;
 
 import static java.util.stream.Collectors.toSet;
-
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.COMMAND_1;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.TO_ADDRESS;
 
 import java.io.IOException;
 import java.util.Map;
@@ -10,16 +10,15 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryService;
+import org.eclipse.smarthome.core.common.ThreadPoolManager;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
-import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ModemDBEntry;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.Port;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
@@ -52,7 +51,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 
 	private final BlockingQueue<Msg> deviceReplyQueue = new LinkedBlockingDeque<Msg>();
 
-	private final ExecutorService executor = ForkJoinPool.commonPool();
+	private final ExecutorService executor = ThreadPoolManager.getPool("smartenitzbplm-thinghandler-commands");
 
 	public ZBPLMDiscoveryService() throws IllegalArgumentException {
 		super(SEARCH_TIME);

@@ -19,16 +19,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(service = InsteonDiscoveryParticipant.class)
-public class SwitchDiscoveryParticipant extends InsteonBaseDiscoveryParticipant {
-	private static final int TOGGLE_SWITCH_CAT = 0x02;
+public class ThermostatDiscoveryParticipant extends InsteonBaseDiscoveryParticipant {
+	private static final int THERMOSTAT_CAT = 0x05;
 	
-	private static final int TOGGLELINC_2446SW_SUB_CAT = 0x1a;
+	private static final int THERMOSTAT_SUBCAT_2441TH = 0x0b;
 		
+
 	private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = new HashSet<>();
 	static {
-		SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_GENERIC_SWITCH);
-		SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_TOGGLELINC_2446SW);
-		}
+		SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_THERMOSTAT_2441TH);
+	}
 	
 	@Override
 	public Set<ThingTypeUID> getSupportedThingTypeUIDs() {
@@ -37,11 +37,11 @@ public class SwitchDiscoveryParticipant extends InsteonBaseDiscoveryParticipant 
 
 	@Override
 	public @Nullable DiscoveryResult createResult(InsteonDeviceInformation deviceInformation) {
-		if(deviceInformation.getDeviceCategory() != TOGGLE_SWITCH_CAT) {
-			// not a toggle switch
+		if(deviceInformation.getDeviceCategory() != THERMOSTAT_CAT) {
+			// not a thermostat
 			return null;
 		}
-		if(deviceInformation.getDeviceSubCategory() == TOGGLELINC_2446SW_SUB_CAT) {
+		if(deviceInformation.getDeviceSubCategory() == THERMOSTAT_SUBCAT_2441TH) {
 			return DiscoveryResultBuilder
 					.create(getUID(deviceInformation))
 					.withRepresentationProperty(INSTEON_ADDRESS)
@@ -56,11 +56,8 @@ public class SwitchDiscoveryParticipant extends InsteonBaseDiscoveryParticipant 
 
 	@Override
 	public @Nullable ThingUID getThingUID(InsteonDeviceInformation deviceInformation) {
-		if(deviceInformation.getDeviceSubCategory() == TOGGLELINC_2446SW_SUB_CAT) {
-			return new ThingUID(THING_TYPE_TOGGLELINC_2446SW, getAddress(deviceInformation));
-		} else {
-			return new ThingUID(THING_TYPE_GENERIC_SWITCH, getAddress(deviceInformation));
-		}
+		return new ThingUID(THING_TYPE_THERMOSTAT_2441TH, getAddress(deviceInformation));
+		
 	}
 	
 	

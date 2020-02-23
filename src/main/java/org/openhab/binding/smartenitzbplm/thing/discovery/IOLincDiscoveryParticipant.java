@@ -19,16 +19,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(service = InsteonDiscoveryParticipant.class)
-public class SwitchDiscoveryParticipant extends InsteonBaseDiscoveryParticipant {
-	private static final int TOGGLE_SWITCH_CAT = 0x02;
+public class IOLincDiscoveryParticipant extends InsteonBaseDiscoveryParticipant {
+	private static final int IOLINC_CAT = 0x07;
+
+	private static final int IOLINC_SUB_CAT = 0x00;
 	
-	private static final int TOGGLELINC_2446SW_SUB_CAT = 0x1a;
-		
+
 	private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = new HashSet<>();
 	static {
-		SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_GENERIC_SWITCH);
-		SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_TOGGLELINC_2446SW);
-		}
+		SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_IOLINC_2450);
+	}
 	
 	@Override
 	public Set<ThingTypeUID> getSupportedThingTypeUIDs() {
@@ -37,11 +37,11 @@ public class SwitchDiscoveryParticipant extends InsteonBaseDiscoveryParticipant 
 
 	@Override
 	public @Nullable DiscoveryResult createResult(InsteonDeviceInformation deviceInformation) {
-		if(deviceInformation.getDeviceCategory() != TOGGLE_SWITCH_CAT) {
+		if(deviceInformation.getDeviceCategory() != IOLINC_CAT) {
 			// not a toggle switch
 			return null;
 		}
-		if(deviceInformation.getDeviceSubCategory() == TOGGLELINC_2446SW_SUB_CAT) {
+		if(deviceInformation.getDeviceSubCategory() == IOLINC_SUB_CAT) {
 			return DiscoveryResultBuilder
 					.create(getUID(deviceInformation))
 					.withRepresentationProperty(INSTEON_ADDRESS)
@@ -56,11 +56,8 @@ public class SwitchDiscoveryParticipant extends InsteonBaseDiscoveryParticipant 
 
 	@Override
 	public @Nullable ThingUID getThingUID(InsteonDeviceInformation deviceInformation) {
-		if(deviceInformation.getDeviceSubCategory() == TOGGLELINC_2446SW_SUB_CAT) {
-			return new ThingUID(THING_TYPE_TOGGLELINC_2446SW, getAddress(deviceInformation));
-		} else {
-			return new ThingUID(THING_TYPE_GENERIC_SWITCH, getAddress(deviceInformation));
-		}
+		return new ThingUID(THING_TYPE_IOLINC_2450, getAddress(deviceInformation));
+
 	}
 	
 	

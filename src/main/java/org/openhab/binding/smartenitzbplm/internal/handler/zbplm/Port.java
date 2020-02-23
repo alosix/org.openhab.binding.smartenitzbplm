@@ -182,12 +182,12 @@ public class Port {
 			return false;
 		}
 
-		// Thread readerThread = new Thread(reader, "ZBPLM Port-reader");
-		// readerThread.start();
-		// Thread writerThread = new Thread(writer, "ZBPLM Port-writer");
-		// writerThread.start();
-		handler.getExecutorService().execute(reader);
-		handler.getExecutorService().execute(writer);
+		 Thread readerThread = new Thread(reader, "ZBPLM Port-reader");
+		 readerThread.start();
+		 Thread writerThread = new Thread(writer, "ZBPLM Port-writer");
+		 writerThread.start();
+		//handler.getExecutorService().execute(reader);
+		//handler.getExecutorService().execute(writer);
 
 		InitializationListener modemInitializationListener = new InitializationListener() {
 

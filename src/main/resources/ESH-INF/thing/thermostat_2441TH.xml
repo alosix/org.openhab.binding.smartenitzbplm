@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="smartenitzbplm"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
+
+	<!-- Sample Thing Type -->
+	<!-- 
+	
+	Discovery info
+	>>> dimmer.getId()
+sent msg: OUT:Cmd:0x62|toAddress:3A.B5.15|messageFlags:0x0F=DIRECT:3:3|command1:0x10|command2:0x00|
+id got ack!
+id got info: IN:Cmd:0x50|fromAddress:3A.B5.15|toAddress:01.0E.43|messageFlags:0x8B=BROADCAST:3:2|command1:0x01|command2:0x36|
+id dev cat: 01 subcat: 0e firmware: 43 hardware: 36
+	 -->
+	<thing-type id="thermostat_2441TH">
+		<label>Insteon Thermostat</label>
+		<description>Thermostat</description>
+		<category>HVAC</category>
+		<channels>
+			<channel id="switch_onoff" typeId="switch_onoff" />
+			
+			<channel id="thermostat_localtemp" typeId="thermostat_localtemp" />
+			<channel id="thermostat_localhumidity" typeId="thermostat_localhumidity" />
+			<channel id="thermostat_outdoortemp" typeId="thermostat_outdoortemp" />
+			<channel id="thermostat_heating" typeId="thermostat_heating" />
+			<channel id="thermostat_cooling" typeId="thermostat_cooling" />
+			<channel id="thermostat_systemmode" typeId="thermostat_systemmode" />
+			<channel id="thermostat_runningmode" typeId="thermostat_runningmode" />
+			
+			
+		</channels>
+
+		<config-description>
+			<parameter name="insteon_address" type="text" required="true">
+				<label>Insteon Address</label>
+				<description>The insteon address</description>
+			</parameter>
+		</config-description>
+
+	</thing-type>
+	
+
+</thing:thing-descriptions>

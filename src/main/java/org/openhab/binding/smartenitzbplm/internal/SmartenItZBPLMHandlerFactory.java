@@ -39,6 +39,7 @@ import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.thing.InsteonDimmerThingHandler;
 import org.openhab.binding.smartenitzbplm.thing.InsteonSwitchThingHandler;
+import org.openhab.binding.smartenitzbplm.thing.InsteonThermostatThingHandler;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -63,6 +64,8 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_LAMPLINC_2457D2);
     	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_GENERIC_SWITCH);
     	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_TOGGLELINC_2446SW);
+    	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_IOLINC_2450);
+    	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_THERMOSTAT_2441TH);
     }
     
     private final Map<ThingUID, ServiceRegistration<?>> coordinatorHandlerRegs = new HashMap<>();
@@ -125,6 +128,16 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
         if(THING_TYPE_GENERIC_SWITCH.equals(thingTypeUID) ||
         		THING_TYPE_TOGGLELINC_2446SW.equals(thingTypeUID)) {
         	InsteonSwitchThingHandler handler = new InsteonSwitchThingHandler(thing);
+        	return handler;
+        }
+        
+        if(THING_TYPE_IOLINC_2450.equals(thingTypeUID)) {
+        	InsteonSwitchThingHandler handler = new InsteonSwitchThingHandler(thing);
+        	return handler;
+        }
+        
+        if(THING_TYPE_THERMOSTAT_2441TH.equals(thingTypeUID)) {
+        	InsteonThermostatThingHandler handler = new InsteonThermostatThingHandler(thing);
         	return handler;
         }
         

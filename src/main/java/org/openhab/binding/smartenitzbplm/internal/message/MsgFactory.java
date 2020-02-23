@@ -88,8 +88,8 @@ public class MsgFactory {
         // drain the buffer until the first byte is 0x02
         if (m_end > 0 && m_buf[0] != 0x02) {
         	// TODO: This might be where to stick in the zigbee messages
-        	
-            bail("incoming message does not start with 0x02");
+        	drainBuffer();
+            //bail("incoming message does not start with 0x02");
         }
         // Now see if we have enough data for a complete message.
         // If not, we return null, and expect this method to be called again
@@ -129,10 +129,10 @@ public class MsgFactory {
         return msg;
     }
 
-    private void bail(String txt) throws IOException {
+    private void bail(String txt) {
         drainBuffer(); // this will drain until end or it finds the next 0x02
         logger.warn(txt);
-        throw new IOException(txt);
+        //throw new IOException(txt);
     }
 
     private void drainBuffer() {
