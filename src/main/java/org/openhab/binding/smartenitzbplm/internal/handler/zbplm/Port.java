@@ -208,19 +208,11 @@ public class Port {
 	 * Stops all threads
 	 */
 	public void stop() {
-		// logger.info("stacktrace:" +
-		// Thread.currentThread().getStackTrace().toString());
-		logger.info("Stopping port:" + this.getDeviceName());
 		ioStream.close();
-		logger.info("Closed iostream");
 		
 		// delete the remaining write queue, then throw in the shutdown message
 		writeQueue.clear();
 		writeQueue.add(new ShutdownMsg());
-
-
-
-		logger.debug("waiting for read thread to exit for port {}", ioStream);
 
 		running = false;
 		listeners.clear();
@@ -242,9 +234,8 @@ public class Port {
 			throw new IOException("trying to write message without data!");
 		}
 		try {
-			logger.info("offering message:{}", m);
+			logger.debug("offering message:{}", m);
 			writeQueue.offer(m);
-			logger.info("enqueued msg: {}", m);
 		} catch (IllegalStateException e) {
 			logger.error("cannot write message {}, write queue is full!", m);
 		}
@@ -303,17 +294,14 @@ public class Port {
 		private void notifyWriter(Msg msg) {
 			synchronized (getRequestReplyLock()) {
 				if (m_reply == ReplyType.WAITING_FOR_ACK) {
-					logger.info("waiting for ack");
 					if (!msg.isUnsolicited()) {
 						m_reply = (msg.isPureNack() ? ReplyType.GOT_NACK : ReplyType.GOT_ACK);
-						logger.info("signaling receipt of ack: {}", (m_reply == ReplyType.GOT_ACK));
 						getRequestReplyLock().notify();
 					} else if (msg.isPureNack()) {
 						m_reply = ReplyType.GOT_NACK;
-						logger.info("signaling receipt of pure nack");
 						getRequestReplyLock().notify();
 					} else {
-						logger.info("got unsolicited message");
+						logger.debug("got unsolicited message");
 					}
 				}
 			}
@@ -344,7 +332,7 @@ public class Port {
 			m_reply = ReplyType.WAITING_FOR_ACK;
 			while (m_reply == ReplyType.WAITING_FOR_ACK) {
 				try {
-					logger.info("writer waiting for ack.");
+					logger.debug("writer waiting for ack.");
 					// There have been cases observed, in particular for
 					// the Hub, where we get no ack or nack back, causing the binding
 					// to hang in the wait() below, because unsolicited messages
@@ -358,7 +346,7 @@ public class Port {
 						m_reply = ReplyType.GOT_NACK;
 						break;
 					} else {
-						logger.info("writer got ack: {}", (m_reply == ReplyType.GOT_ACK));
+						logger.debug("writer got ack: {}", (m_reply == ReplyType.GOT_ACK));
 					}
 				} catch (InterruptedException e) {
 					break; // done for the day...
@@ -402,11 +390,13 @@ public class Port {
 							synchronized (reader.getRequestReplyLock()) {
 								ioStream.write(msg.getData());
 
-//							while (reader.waitForReply()) {
-//								Thread.sleep(WAIT_TIME);
-//								logger.info("retransmitting msg: {}", msg);
-//								ioStream.write(msg.getData());
-//							}
+							int retryCount = 0;
+							while (reader.waitForReply() &&  retryCount < 2) {
+								Thread.sleep(WAIT_TIME);
+								logger.info("retransmitting msg: {}", msg);
+								ioStream.write(msg.getData());
+								retryCount++;
+							}
 
 							}
 							// if rate limited, need to sleep now.

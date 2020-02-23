@@ -18,4 +18,86 @@
         <description>Sets the level of the light</description>
         <category>Light</category>
     </channel-type>
+    
+     <!-- Thermostat Local Temperature -->
+    <channel-type id="thermostat_localtemp">
+        <item-type>Number:Temperature</item-type>
+        <label>Local Temperature</label>
+        <description>Indicates the local temperature provided by the thermostat</description>
+        <category>HVAC</category>
+        <state pattern="%.1f %unit%" readOnly="true"/>
+    </channel-type>
+    
+    <!-- Thermostat Local Humidity -->
+    <channel-type id="thermostat_localhumidity">
+        <item-type>Number:Humidity</item-type>
+        <label>Local Humidity</label>
+        <description>Indicates the local humidity provided by the thermostat</description>
+        <category>HVAC</category>
+        <state pattern="%.1f %unit%" readOnly="true"/>
+    </channel-type>
+
+    <!-- Thermostat Outdoor Temperature -->
+    <channel-type id="thermostat_outdoortemp">
+        <item-type>Number:Temperature</item-type>
+        <label>Outdoor Temperature</label>
+        <description>Indicates the outdoor temperature provided by the thermostat</description>
+        <category>HVAC</category>
+        <state pattern="%.1f %unit%" readOnly="true"/>
+    </channel-type>
+
+    <!-- Thermostat Heating -->
+    <channel-type id="thermostat_heating">
+        <item-type>Number:Temperature</item-type>
+        <label>Heating Setpoint</label>
+        <description>Set the heating temperature</description>
+        <category>HVAC</category>
+        <state pattern="%.1f %unit%"/>
+    </channel-type>
+
+    <!-- Thermostat Occupied Cooling -->
+    <channel-type id="thermostat_cooling">
+        <item-type>Number:Temperature</item-type>
+        <label>Cooling Setpoint</label>
+        <description>Set the cooling temperature</description>
+        <category>HVAC</category>
+        <state pattern="%.1f %unit%"/>
+    </channel-type>
+
+    <!-- Thermostat System Mode -->
+    <channel-type id="thermostat_systemmode">
+        <item-type>Number</item-type>
+        <label>System Mode</label>
+        <description>Set the system mode of the thermostat</description>
+        <category>HVAC</category>
+        <state>
+            <options>
+                <option value="0">Off</option>
+                <option value="1">Auto</option>
+                <option value="3">Cool</option>
+                <option value="4">Heat</option>
+                <option value="5">Emergency Heating</option>
+                <option value="6">Precooling</option>
+                <option value="7">Fan Only</option>
+                <option value="8">Dry</option>
+                <option value="9">Sleep</option>
+            </options>
+        </state>
+    </channel-type>
+
+    <!-- Thermostat Running Mode -->
+    <channel-type id="thermostat_runningmode">
+        <item-type>Number</item-type>
+        <label>Running Mode</label>
+        <description>The running mode of the thermostat</description>
+        <category>HVAC</category>
+        <state readOnly="true">
+            <options>
+                <option value="0">Off</option>
+                <option value="3">Cool</option>
+                <option value="4">Heat</option>
+            </options>
+        </state>
+    </channel-type>
+    
 </thing:thing-descriptions>

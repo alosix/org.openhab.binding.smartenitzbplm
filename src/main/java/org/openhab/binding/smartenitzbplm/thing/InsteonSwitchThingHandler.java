@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 public class InsteonSwitchThingHandler extends InsteonBaseThingHandler {
 	private final Logger logger = LoggerFactory.getLogger(InsteonSwitchThingHandler.class);
 
-	protected byte onLevel = 0x00;
+	private boolean on = false;
 
 	public InsteonSwitchThingHandler(Thing thing) {
 		super(thing);
@@ -51,16 +51,14 @@ public class InsteonSwitchThingHandler extends InsteonBaseThingHandler {
 		super.onMessage(msg);
 		// check to see if its for me
 		if (!this.address.equals(msg.getAddr(FROM_ADDRESS))) {
-			logger.info("Message from address {} does not equal this address {}", msg.getAddr(FROM_ADDRESS),
-					this.address.toString());
 			return;
 		}
 		try {
 			if (msg.getName().equals(STANDARD_MESSAGE_RECEIVED)) {
-				onLevel = msg.getByte(COMMAND_2);
+				on = msg.getByte(COMMAND_2) != 0x00;
 				this.updateStatus(ThingStatus.ONLINE);
-				logger.info("setting onLevel to {}", onLevel);
-				updateState(SWITCH_ONOFF, onLevel != 0 ? OnOffType.ON : OnOffType.OFF);
+				logger.info("setting onLevel to {}", on);
+				updateState(SWITCH_ONOFF, on ? OnOffType.ON : OnOffType.OFF);
 			}
 		} catch (FieldException e) {
 			logger.error("Error getting on level ", e);

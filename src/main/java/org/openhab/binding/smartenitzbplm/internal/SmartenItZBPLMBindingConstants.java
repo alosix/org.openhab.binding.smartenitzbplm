@@ -29,7 +29,13 @@ public class SmartenItZBPLMBindingConstants {
     static final String BINDING_ID = "smartenitzbplm";
 
     public static final ThingTypeUID THING_TYPE_PLM_COORDINATOR = new ThingTypeUID(BINDING_ID, "coordinator_zbplm");
+    
+    // Dimmers 0x01 device category
     public static final ThingTypeUID THING_TYPE_LAMPLINC_2457D2 = new ThingTypeUID(BINDING_ID, "lamplinc_2457D2");
+    
+    // Switches 0x02 device category
+    public static final ThingTypeUID THING_TYPE_TOGGLELINC_2446SW = new ThingTypeUID(BINDING_ID, "togglelinc_2466SW");
+    public static final ThingTypeUID THING_TYPE_GENERIC_SWITCH = new ThingTypeUID(BINDING_ID, "insteon_generic_switch"); // if we don't have a specifc switch setup
     
     
     // List of all Channel ids

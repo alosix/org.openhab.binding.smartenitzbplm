@@ -12,8 +12,7 @@
  */
 package org.openhab.binding.smartenitzbplm.internal;
 
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_LAMPLINC_2457D2;
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.THING_TYPE_PLM_COORDINATOR;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +38,7 @@ import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.thing.InsteonDimmerThingHandler;
+import org.openhab.binding.smartenitzbplm.thing.InsteonSwitchThingHandler;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -61,6 +61,8 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
     static {
     	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_PLM_COORDINATOR);
     	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_LAMPLINC_2457D2);
+    	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_GENERIC_SWITCH);
+    	SUPPORTED_THING_TYPES_UIDS.add(THING_TYPE_TOGGLELINC_2446SW);
     }
     
     private final Map<ThingUID, ServiceRegistration<?>> coordinatorHandlerRegs = new HashMap<>();
@@ -117,12 +119,15 @@ public class SmartenItZBPLMHandlerFactory extends BaseThingHandlerFactory {
         
         if(THING_TYPE_LAMPLINC_2457D2.equals(thingTypeUID)) {
         	InsteonDimmerThingHandler handler = new InsteonDimmerThingHandler(thing);
-//           	bundleContext.registerService(ConfigDescriptionProvider.class.getName(), handler,
-//                    new Hashtable<String, Object>());
-//            bundleContext.registerService(DynamicStateDescriptionProvider.class.getName(), handler,
-//                    new Hashtable<String, Object>());
         	return handler;
         }
+        
+        if(THING_TYPE_GENERIC_SWITCH.equals(thingTypeUID) ||
+        		THING_TYPE_TOGGLELINC_2446SW.equals(thingTypeUID)) {
+        	InsteonSwitchThingHandler handler = new InsteonSwitchThingHandler(thing);
+        	return handler;
+        }
+        
         
 
         return null;

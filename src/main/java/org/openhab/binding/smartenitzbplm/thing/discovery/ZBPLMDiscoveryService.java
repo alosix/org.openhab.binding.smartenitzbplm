@@ -62,6 +62,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 
 	@Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)
 	protected void addInsteonDiscoveryParticipant(InsteonDiscoveryParticipant participant) {
+		logger.info("Adding participant:" + participant.getClass().toString());
 		participants.add(participant);
 	}
 

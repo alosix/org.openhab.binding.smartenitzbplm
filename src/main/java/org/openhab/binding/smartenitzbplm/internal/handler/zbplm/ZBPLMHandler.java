@@ -39,6 +39,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	private final Logger logger = LoggerFactory.getLogger(ZBPLMHandler.class);
 
 	private ConcurrentMap<InsteonAddress, InsteonDevice> devices = null;
+	
 	private Port port = null;
 	private IOStream ioStream = null;
 	private SerialPortManager serialPortManager;
