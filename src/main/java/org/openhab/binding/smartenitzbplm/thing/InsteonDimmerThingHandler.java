@@ -18,6 +18,7 @@ public class InsteonDimmerThingHandler extends InsteonSwitchThingHandler {
 
 	@Override
 	public void handleCommand(ChannelUID channelUID, Command command) {
+		super.handleCommand(channelUID, command);
 	}
 	
 

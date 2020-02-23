@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
  */
 public class SerialIOStream extends IOStream implements SerialPortEventListener {
 	private static final Logger logger = LoggerFactory.getLogger(SerialIOStream.class);
-	private static boolean highlander = false;
 	private int baudRate = 115200; // baud rate
 	private String portName = null;
 	private SerialPortManager serialPortManager = null;
@@ -55,11 +54,6 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 
 
 	public SerialIOStream(SerialPortManager serialPortManager, String devName, int speed, MsgFactory msgFactory) {
-		if(highlander) {
-			Exception e = new Exception("there can be only one");
-			logger.error("Second iostream created", e);
-		}
-		highlander = true;
 		this.serialPortManager = serialPortManager;
 		this.msgFactory = msgFactory;
 		this.portName = devName;

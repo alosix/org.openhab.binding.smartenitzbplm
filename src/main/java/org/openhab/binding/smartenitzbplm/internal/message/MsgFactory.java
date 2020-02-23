@@ -87,6 +87,8 @@ public class MsgFactory {
         }
         // drain the buffer until the first byte is 0x02
         if (m_end > 0 && m_buf[0] != 0x02) {
+        	// TODO: This might be where to stick in the zigbee messages
+        	
             bail("incoming message does not start with 0x02");
         }
         // Now see if we have enough data for a complete message.

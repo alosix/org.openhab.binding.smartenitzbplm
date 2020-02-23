@@ -20,7 +20,7 @@ id dev cat: 01 subcat: 0e firmware: 43 hardware: 36
 		<category>PowerOutlet</category>
 		<channels>
 			<channel id="switch_onoff" typeId="switch_onoff" />
-			<channel id="dimmer" typeId="switch_level" />
+			<channel id="switch_level" typeId="switch_level" />
 		</channels>
 
 		<config-description>

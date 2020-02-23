@@ -33,7 +33,12 @@ public class SmartenItZBPLMBindingConstants {
     
     
     // List of all Channel ids
-    public static final String CHANNEL_1 = "channel1";
+    public static final String SWITCH_ONOFF = "switch_onoff";
+    public static final String SWITCH_LEVEL = "switch_level";
+    
+    public static final ChannelTypeUID CHANNEL_SWITCH_ONOFF = new ChannelTypeUID(BINDING_ID, SWITCH_ONOFF);
+    public static final ChannelTypeUID CHANNEL_SWITCH_LEVEL = new ChannelTypeUID(BINDING_ID, SWITCH_LEVEL);
+    
     
 	
     // List of configuration keys
