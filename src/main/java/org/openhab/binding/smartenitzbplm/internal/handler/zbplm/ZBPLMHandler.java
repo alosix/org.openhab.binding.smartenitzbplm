@@ -125,7 +125,9 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 
 			}
 		};
-		executorService.execute(msgRunnable);
+		Thread listenerThread = new Thread(msgRunnable, listener.getAddress() + ": message thread");
+		listenerThread.start();
+		//executorService.execute(msgRunnable);
 
 	}
 
