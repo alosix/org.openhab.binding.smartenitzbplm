@@ -31,15 +31,18 @@ public class InsteonDimmerThingHandler extends InsteonSwitchThingHandler {
 	@Override
 	public void handleCommand(ChannelUID channelUID, Command command) {
 		super.handleCommand(channelUID, command);
+		String channelId = channelUID.getIdWithoutGroup();
 		try {
-			if (command.getClass().isAssignableFrom(PercentType.class)) {
-				PercentType percentType = (PercentType) command;
-				double percentOn = percentType.doubleValue() / 100.0;
-				byte level = (byte) (MAX_LEVEL * percentOn);
-				logger.info("On level to be set to {}", level);
-				Msg msg = MsgFactory.makeExtendedMessage(this.address, (byte) 0x0f, (byte) 0x11, level);
-				handler.sendMsg(msg);
-
+			if(SWITCH_LEVEL.contentEquals(channelId)) {
+				if (command instanceof PercentType) {
+					PercentType percentType = (PercentType) command;
+					double percentOn = percentType.doubleValue() / 100.0;
+					byte level = (byte) (MAX_LEVEL * percentOn);
+					logger.info("On level to be set to {}", level);
+					Msg msg = MsgFactory.makeExtendedMessage(this.address, (byte) 0x0f, (byte) 0x11, level);
+					handler.sendMsg(msg);
+	
+				}
 			}
 		} catch (FieldException | IOException e) {
 			logger.error("Error sending dimmer message", e);

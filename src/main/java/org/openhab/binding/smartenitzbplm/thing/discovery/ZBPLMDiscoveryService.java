@@ -1,16 +1,17 @@
 package org.openhab.binding.smartenitzbplm.thing.discovery;
 
 import static java.util.stream.Collectors.toSet;
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.COMMAND_1;
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.TO_ADDRESS;
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
@@ -43,7 +44,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 	/**
 	 * Default search time (2m)
 	 */
-	private final static int SEARCH_TIME = 120;
+	private final static int SEARCH_TIME = 60;
 
 	private ZBPLMHandler handler = null;
 
@@ -51,7 +52,11 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 
 	private final BlockingQueue<Msg> deviceReplyQueue = new LinkedBlockingDeque<Msg>();
 
-	private final ExecutorService executor = ThreadPoolManager.getPool("smartenitzbplm-thinghandler-commands");
+	private final ExecutorService executor = ThreadPoolManager.getPool(COMMAND_POOL);
+	private final ScheduledExecutorService scheduledExecutor = ThreadPoolManager.getScheduledPool(SCHEDULED_POOL);
+
+	// The set of devices that we've already scanned (from the DB or from discovery
+	private final Set<InsteonDeviceInformation> previouslyScannedDevices = new HashSet<InsteonDeviceInformation>();
 
 	public ZBPLMDiscoveryService() throws IllegalArgumentException {
 		super(SEARCH_TIME);
@@ -101,14 +106,53 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 			@Override
 			public void run() {
 				try {
-					scanModemDB(handler);
-				} catch (InterruptedException | IOException e) {
+					// Now set the controller in link mode
+					Msg msg = Msg.makeMessage(START_ALL_LINKING);
+					msg.setByte(LINK_CODE, (byte) 0x03);
+					msg.setByte(ALL_LINK_GROUP, (byte)-1);;
+					handler.sendMsg(msg);
+					
+					// Recheck any of the previous DB entries to see if we have a
+					// participant now
+					for (InsteonDeviceInformation deviceInformation : previouslyScannedDevices) {
+						checkParticipants(deviceInformation);
+					}
+
+
+					
+
+					scheduleLinkStop();
+
+				} catch ( IOException | FieldException e) {
 					logger.warn("Error while scanning DB for new handler:" + handler.toString(), e);
 				}
 
 			}
 		});
 
+	}
+
+	/**
+	 * Schedules the cancel linking command
+	 */
+	private void scheduleLinkStop() {
+		final ZBPLMHandler handler = this.handler;
+		Runnable runnable = new Runnable() {
+			@Override
+			public void run() {
+				try {
+					logger.info("canceling linking");
+					Msg msg = Msg.makeMessage(CANCEL_ALL_LINKING);
+					handler.sendMsg(msg);
+					// rescan the DB to see if we got anything
+					scanModemDB(handler);
+				} catch (IOException | InterruptedException e) {
+					logger.error("Error sending cancel all linking message", e);
+				}
+			}
+		};
+
+		scheduledExecutor.schedule(runnable, SEARCH_TIME, TimeUnit.SECONDS);
 	}
 
 	/**
@@ -132,12 +176,11 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 			logger.warn("DB download not complete, skipping scan");
 			return;
 		}
-		
+
 		handler.addInsteonMsgListener(this);
 
 		try {
 			Map<DeviceAddress, ModemDBEntry> entries = handler.getPort().getModemDBEntries();
-			
 
 			DeviceAddress modem = port.getAddress();
 			for (DeviceAddress address : entries.keySet()) {
@@ -158,7 +201,7 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 		} catch (FieldException e) {
 			logger.error("Error sending device type request", e);
 		} finally {
-			//port.removeListener(this);
+			// port.removeListener(this);
 		}
 
 	}
@@ -173,14 +216,26 @@ public class ZBPLMDiscoveryService extends AbstractDiscoveryService implements I
 			deviceInformation.setDeviceSubCategory(toAddress.getMiddleByte());
 			deviceInformation.setFirmwareVersion(toAddress.getLowByte());
 			deviceInformation.setHandler(handler);
-			for (InsteonDiscoveryParticipant participant : participants) {
-				DiscoveryResult discoveryResult = participant.createResult(deviceInformation);
-				if (discoveryResult != null) {
-					logger.info("Found a thing:" + discoveryResult.toString());
-					thingDiscovered(discoveryResult);
-				}
-			}
+			// Save these off in case we get new participants.. or the user deletes
+			// them from the inbox and rescans to get them back.
+			previouslyScannedDevices.add(deviceInformation);
+			checkParticipants(deviceInformation);
 
+		}
+	}
+
+	/**
+	 * Checks to see if a thing matches one of the participants
+	 * 
+	 * @param deviceInformation
+	 */
+	private void checkParticipants(InsteonDeviceInformation deviceInformation) {
+		for (InsteonDiscoveryParticipant participant : participants) {
+			DiscoveryResult discoveryResult = participant.createResult(deviceInformation);
+			if (discoveryResult != null) {
+				logger.info("Found a thing:" + discoveryResult.toString());
+				thingDiscovered(discoveryResult);
+			}
 		}
 	}
 

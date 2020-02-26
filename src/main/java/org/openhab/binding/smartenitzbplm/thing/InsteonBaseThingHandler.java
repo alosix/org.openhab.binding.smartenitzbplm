@@ -1,7 +1,12 @@
 package org.openhab.binding.smartenitzbplm.thing;
 
 import java.io.IOException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
+
+import org.eclipse.smarthome.core.common.ThreadPoolManager;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
@@ -27,6 +32,9 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 	private final Logger logger = LoggerFactory.getLogger(InsteonBaseThingHandler.class);
 	protected DeviceAddress address;
 	protected ZBPLMHandler handler;
+	protected ScheduledExecutorService scheduledExecutors = ThreadPoolManager.getScheduledPool(SCHEDULED_POOL);
+	
+	protected int pollSinceLastMessage = 0;
 
 	public InsteonBaseThingHandler(Thing thing) {
 		super(thing);
@@ -44,7 +52,10 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 
 	@Override
 	public void onMessage(Msg msg) {
-		// Noop for now
+		if(this.address.equals(msg.getAddr(FROM_ADDRESS))) {
+			pollSinceLastMessage = 0;
+			updateStatus(ThingStatus.ONLINE);
+		}
 
 	}
 
@@ -83,13 +94,29 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 	 * Base init asks for the insteon status
 	 */
 	public void init() {
-		try {
-			Msg msg = MsgFactory.makeStandardMessage(this.address, (byte) 0x0f, (byte) 0x19, (byte) 0x00);
-			handler.sendMsg(msg);
+		final DeviceAddress address = this.address;
+		Runnable runnable = new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					if(pollSinceLastMessage > 2) {
+						updateStatus(ThingStatus.UNKNOWN);
+					}
+					Msg msg = MsgFactory.makeStandardMessage(address, (byte) 0x0f, (byte) 0x19, (byte) 0x00);
+					handler.sendMsg(msg);
+					//msg = MsgFactory.makeExtendedMessage(address, (byte) 0x1f, (byte) 0x2e, (byte) 0x00);
+					//handler.sendMsg(msg);
+					pollSinceLastMessage++;
 
-		} catch (IOException | FieldException e) {
-			logger.error("Unable to send status message", e);
-		}
+				} catch (IOException | FieldException e) {
+					logger.error("Unable to send status message", e);
+				}
+				
+			}
+		};
+		// run the status right now, and every 5  minutes
+		scheduledExecutors.scheduleAtFixedRate(runnable, 0,  5, TimeUnit.MINUTES);
 	}
 
 }

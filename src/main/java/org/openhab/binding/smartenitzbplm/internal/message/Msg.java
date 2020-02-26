@@ -72,9 +72,9 @@ public class Msg {
     // has the structure of all known messages
     private static final HashMap<String, Msg> msgMap = new HashMap<String, Msg>();
     // maps between command number and the length of the header
-    private static final HashMap<Integer, Integer> headerMap = new HashMap<Integer, Integer>();
+    private static final HashMap<Byte, Integer> headerMap = new HashMap<Byte, Integer>();
     // has templates for all message from modem to host
-    private static final HashMap<Integer, Msg> replyMap = new HashMap<Integer, Msg>();
+    private static final HashMap<ReplyToKey, Msg> replyMap = new HashMap<ReplyToKey, Msg>();
 
     private int m_headerLength = -1;
     private byte[] m_data = null;
@@ -529,11 +529,11 @@ public class Msg {
      * @param isExtended whether it is an extended message or not
      * @return message, or null if the Msg cannot be created
      */
-    public static Msg s_createMessage(byte[] m_buf, int msgLen, boolean isExtended) {
+    public static Msg createMessage(byte[] m_buf, int msgLen, boolean isExtended) {
         if (m_buf == null || m_buf.length < 2) {
             return null;
         }
-        Msg template = replyMap.get(cmdToKey(m_buf[1], isExtended));
+        Msg template = replyMap.get(new ReplyToKey(m_buf[1], isExtended));
         if (template == null) {
             return null; // cannot find lookup map
         }
@@ -569,8 +569,8 @@ public class Msg {
      * @return message length, or -1 if length cannot be determined
      */
     public static int getMessageLength(byte b, boolean isExtended) {
-        int key = cmdToKey(b, isExtended);
-        Msg msg = replyMap.get(key);
+        //int key = cmdToKey(b, isExtended);
+        Msg msg = replyMap.get(new ReplyToKey(b, isExtended));
         if (msg == null) {
             return -1;
         }
@@ -587,14 +587,11 @@ public class Msg {
      * @return true if it is definitely extended, false if cannot be
      *         determined or if it is a standard message
      */
-    public static boolean isExtended(byte[] buf, int len, int headerLength) {
-        if (headerLength <= 2) {
+    public static boolean isExtended(byte[] header) {
+        if (header.length <= 2) {
             return false;
         } // extended messages are longer
-        if (len < headerLength) {
-            return false;
-        } // not enough data to tell if extended
-        byte flags = buf[headerLength - 1]; // last byte says flags
+        byte flags = header[header.length - 1]; // last byte says flags
         boolean isExtended = (flags & 0x10) == 0x10; // bit 4 is the message
         return (isExtended);
     }
@@ -621,7 +618,7 @@ public class Msg {
     private static void buildHeaderMap() {
         for (Msg m : msgMap.values()) {
             if (m.getDirection() == Direction.FROM_MODEM) {
-                headerMap.put(new Integer(m.getCommandNumber()), m.getHeaderLength());
+                headerMap.put(new Byte(m.getCommandNumber()), m.getHeaderLength());
             }
         }
     }
@@ -629,12 +626,15 @@ public class Msg {
     private static void buildLengthMap() {
         for (Msg m : msgMap.values()) {
             if (m.getDirection() == Direction.FROM_MODEM) {
-                Integer key = new Integer(cmdToKey(m.getCommandNumber(), m.isExtended()));
+                ReplyToKey key = new ReplyToKey(m.getCommandNumber(), m.isExtended());
+                if(replyMap.containsKey(key)) {
+                	logger.error("*** Replymap already contains a command {}", m.getCommandNumber());
+                }
                 replyMap.put(key, m);
             }
         }
     }
-
+    
 	public String getName() {
 		return name;
 	}
@@ -642,4 +642,51 @@ public class Msg {
 	public void setName(String name) {
 		this.name = name;
 	}
+	
+	
+}
+class ReplyToKey {
+	byte command;
+	boolean isExtended;
+	public ReplyToKey(byte command, boolean isExtended) {
+		super();
+		this.command = command;
+		this.isExtended = isExtended;
+	}
+	public byte getCommand() {
+		return command;
+	}
+	public boolean isExtended() {
+		return isExtended;
+	}
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + command;
+		result = prime * result + (isExtended ? 1231 : 1237);
+		return result;
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ReplyToKey other = (ReplyToKey) obj;
+		if (command != other.command)
+			return false;
+		if (isExtended != other.isExtended)
+			return false;
+		return true;
+	}
+	@Override
+	public String toString() {
+		return "ReplyToKey [command=" + command + ", isExtended=" + isExtended + "]";
+	}
+	
+	
+	
 }

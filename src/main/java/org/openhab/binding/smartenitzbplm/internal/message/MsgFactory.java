@@ -12,12 +12,14 @@
  */
 package org.openhab.binding.smartenitzbplm.internal.message;
 
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
+
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,9 +39,10 @@ public class MsgFactory {
     private static final Logger logger = LoggerFactory.getLogger(MsgFactory.class);
     // no idea what the max msg length could be, but
     // I doubt it'll ever be larger than 4k
-    private final static int MAX_MSG_LEN = 4096;
-    private byte[] m_buf = new byte[MAX_MSG_LEN];
-    private int m_end = 0; // offset of end of buffer
+    private final static int MAX_MSG_LEN = 16384;
+    //private byte[] m_buf = new byte[MAX_MSG_LEN];
+    //private int m_end = 0; // offset of end of buffer
+    private final ByteBuffer buffer = ByteBuffer.allocate(MAX_MSG_LEN);
 
     /**
      * Constructor
@@ -53,16 +56,14 @@ public class MsgFactory {
      * @param data data to be added
      * @param len length of data to be added
      */
-    public void addData(byte[] data, int len) {
-        if (len + m_end > MAX_MSG_LEN) {
-            logger.error("warn: truncating excessively long message!");
-            len = MAX_MSG_LEN - m_end;
-        }
-        // append the new data to the one we already have
-        System.arraycopy(data, 0, m_buf, m_end, len);
-        m_end += len;
-        // copy the incoming data to the end of the buffer
-        logger.trace("read buffer: len {} data: {}", m_end, Utils.getHexString(m_buf, m_end));
+    public boolean addData(byte[] data, int len) {
+    	if(buffer.limit() > len) {
+    		logger.warn("Buffer cannot take message of length {}", len);
+    		return false;
+    	}
+
+    	buffer.put(data, 0, len);
+        return true;
     }
 
     /**
@@ -74,10 +75,14 @@ public class MsgFactory {
      * @throws IOException if data was received with unknown command codes
      */
     public Msg processData() throws IOException {
-        // handle the case where we get a pure nack
-        if (m_end > 0 && m_buf[0] == 0x15) {
+    	// Save our position before we start pulling things off so we can reset if needed
+    	// and wait for more data
+    	buffer.mark();
+
+    	// handle the case where we get a pure nack
+    	byte header = buffer.get();
+        if (header == 0x15) {
             logger.trace("got pure nack!");
-            removeFromBuffer(1);
             try {
                 Msg m = Msg.makeMessage("PureNACK");
                 return m;
@@ -85,48 +90,67 @@ public class MsgFactory {
                 return null;
             }
         }
-        // drain the buffer until the first byte is 0x02
-        if (m_end > 0 && m_buf[0] != 0x02) {
-        	// TODO: This might be where to stick in the zigbee messages
+        // drain the buffer until the first byte is 0x02 (start of insteon/x10 messages
+        if (header != 0x02) {
+        	// drain till the next message or the end
+        	// the next call will pick that up
         	drainBuffer();
-            //bail("incoming message does not start with 0x02");
+        	return null;
         }
         // Now see if we have enough data for a complete message.
         // If not, we return null, and expect this method to be called again
         // when more data has come in.
         int msgLen = -1;
         boolean isExtended = false;
-        if (m_end > 1) {
+        if(buffer.hasRemaining()) {
             // we have some data, but do we have enough to read the entire header?
-            int headerLength = Msg.getHeaderLength(m_buf[1]);
-            isExtended = Msg.isExtended(m_buf, m_end, headerLength);
-            logger.trace("header length expected: {} extended: {}", headerLength, isExtended);
-            if (headerLength < 0) {
-                removeFromBuffer(1); // get rid of the leading 0x02 so draining works
-                bail("got unknown command code " + Utils.getHexByte(m_buf[1]));
-            } else if (headerLength >= 2) {
-                if (m_end >= headerLength) {
-                    // only when the header is complete do we know that isExtended is correct!
-                    msgLen = Msg.getMessageLength(m_buf[1], isExtended);
-                    if (msgLen < 0) {
-                        // Cannot make sense out of the combined command code & isExtended flag.
-                        removeFromBuffer(1);
-                        bail("unknown command code/ext flag: " + Utils.getHexByte(m_buf[1]));
-                    }
-                }
-            } else { // should never happen
-                logger.error("invalid header length, internal error!");
-                msgLen = -1;
+        	byte command = buffer.get();
+            int headerLength = Msg.getHeaderLength(command);
+            
+            if(headerLength < 0) {
+            	logger.warn("Got unknown command code {}", command);
+            	drainBuffer();
+            	return null;
             }
+            
+            if(buffer.remaining() < (headerLength-2)) { // -2 since we've already pulled 2 of the header bytes out
+            	// Reset to the mark before the header so we can wait for more data
+            	logger.info("Not enough data yet for the header, returning null");
+            	buffer.reset();
+            	return null;
+            }
+            
+            byte [] headerBytes = new byte[headerLength];
+            headerBytes[0] = header;
+            headerBytes[1] = command;
+            // and then get the rest of the header
+            buffer.get(headerBytes, 2, headerLength-2);
+            
+            isExtended = Msg.isExtended(headerBytes);
+            logger.info("header length expected: {} extended: {}", headerLength, isExtended);
+
+            int messageLength = Msg.getMessageLength(command, isExtended);
+            
+            if(messageLength < 0) {
+            	logger.warn("Unable to find length for command {} isExtended {}", command, isExtended);
+            	drainBuffer();
+            	return null;
+            }
+            
+            if(buffer.remaining() < messageLength) {
+            	logger.info("Not enough data yet to read the message");
+            	buffer.reset();
+            	return null;
+            }
+            
+            byte [] messageBytes = new byte[messageLength];
+            buffer.get(messageBytes);
+            Msg msg = Msg.createMessage(messageBytes, messageLength, isExtended);
+            return msg;
         }
-        logger.trace("msgLen expected: {}", msgLen);
-        Msg msg = null;
-        if (msgLen > 0 && m_end >= msgLen) {
-            msg = Msg.s_createMessage(m_buf, msgLen, isExtended);
-            removeFromBuffer(msgLen);
-        }
-        logger.trace("keeping buffer len {} data: {}", m_end, Utils.getHexString(m_buf, m_end));
-        return msg;
+        
+        return null;
+
     }
 
     private void bail(String txt) {
@@ -136,19 +160,13 @@ public class MsgFactory {
     }
 
     private void drainBuffer() {
-        while (m_end > 0 && m_buf[0] != 0x02) {
-            removeFromBuffer(1);
-        }
+    	byte current = (byte) 0x00;
+    	while(buffer.hasRemaining() && current != 0x02) {
+    		current = buffer.get();;
+    	}
     }
 
-    private void removeFromBuffer(int len) {
-        if (len > m_end) {
-            len = m_end;
-        }
-        System.arraycopy(m_buf, len, m_buf, 0, m_end + 1 - len);
-        m_end -= len;
-    }
-    
+
     
     /**
 	 * Helper method to make standard message
@@ -258,4 +276,6 @@ public class MsgFactory {
 		m.setCRC2();
 		return m;
 	}
+	
+	
 }

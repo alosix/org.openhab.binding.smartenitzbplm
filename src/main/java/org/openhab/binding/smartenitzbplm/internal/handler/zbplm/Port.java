@@ -363,7 +363,7 @@ public class Port {
 	 * @author Bernd Pfrommer
 	 */
 	class IOStreamWriter implements Runnable {
-		private static final int WAIT_TIME = 200; // milliseconds
+		private static final int WAIT_TIME = 500; // milliseconds
 
 		@Override
 		public void run() {
@@ -391,7 +391,7 @@ public class Port {
 								ioStream.write(msg.getData());
 
 							int retryCount = 0;
-							while (reader.waitForReply() &&  retryCount < 2) {
+							while (reader.waitForReply() &&  retryCount < 5) {
 								Thread.sleep(WAIT_TIME);
 								logger.info("retransmitting msg: {}", msg);
 								ioStream.write(msg.getData());

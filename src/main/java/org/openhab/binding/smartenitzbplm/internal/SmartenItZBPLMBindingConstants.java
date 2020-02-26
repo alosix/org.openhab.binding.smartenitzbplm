@@ -25,7 +25,10 @@ import org.eclipse.smarthome.core.thing.type.ChannelTypeUID;
  */
 @NonNullByDefault
 public class SmartenItZBPLMBindingConstants {
-
+	// threadpool names
+	public static final String SCHEDULED_POOL = "smartenitzbplm-scheduled-pool";
+	public static final String COMMAND_POOL = "smartenitzbplm-thinghandler-commands";
+	
     static final String BINDING_ID = "smartenitzbplm";
 
     public static final ThingTypeUID THING_TYPE_PLM_COORDINATOR = new ThingTypeUID(BINDING_ID, "coordinator_zbplm");
@@ -43,7 +46,11 @@ public class SmartenItZBPLMBindingConstants {
     
     // List of all Channel ids
     public static final String SWITCH_ONOFF = "switch_onoff";
+    public static final String SWITCH_FAST_ONOFF = "switch_fast_onoff";
     public static final String SWITCH_LEVEL = "switch_level";
+    public static final String SWITCH_LEVEL_LED = "switch_level_led";
+    public static final String SWITCH_RAMP_RATE = "switch_ramp_rate";
+    
     public static final String THERMOSTAT_LOCALTEMP = "thermostat_localtemp";
     public static final String THERMOSTAT_LOCALHUMIDITY = "thermostat_localhumidity";
     public static final String THERMOSTAT_OUTDOORTEMP = "thermostat_outdoortemp";
@@ -85,6 +92,11 @@ public class SmartenItZBPLMBindingConstants {
     public static final String SEND_STANDARD_MESSAGE = "SendStandardMessage";
     public static final String SEND_EXTENDED_MESSAGE = "SendExtendedMessage";
     public static final String STANDARD_MESSAGE_RECEIVED = "StandardMessageReceived";
+    public static final String EXTENDED_MESSAGE_RECIEVED = "ExtendedMessageReceived";
+    public static final String READ_DATA_2_RECIEVED = "ReadData2Received";
+    
+    public static final String START_ALL_LINKING = "StartALLLinking";
+    public static final String CANCEL_ALL_LINKING = "CancelALLLinking";
     
     public static final String GET_IM_INFO_REPLY = "GetIMInfoReply";
 	public static final String FIRMWARE_VERSION = "FirmwareVersion";
@@ -120,5 +132,8 @@ public class SmartenItZBPLMBindingConstants {
 	public static final String LINK_DATA_1 = "LinkData1";
 	public static final String LINK_DATA_2 = "LinkData2";
 	public static final String LINK_DATA_3 = "LinkData3";
+	
+	public static final String LINK_CODE = "LinkCode";
+	public static final String ALL_LINK_GROUP = "ALLLinkGroup";
 	
 }

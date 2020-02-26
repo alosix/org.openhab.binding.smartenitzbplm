@@ -1,5 +1,6 @@
 package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -7,7 +8,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import org.eclipse.smarthome.core.common.ThreadPoolManager;
@@ -47,7 +47,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	private MsgFactory msgFactory = new MsgFactory();
 	private DeviceTypeLoader deviceTypeLoader;
 	private ZBPLMConfig config = null;
-	private ExecutorService executorService = ThreadPoolManager.getPool("smartenitzbplm-thinghandler-commands");
+	private ExecutorService executorService = ThreadPoolManager.getPool(COMMAND_POOL);
 
 	public ExecutorService getExecutorService() {
 		return executorService;

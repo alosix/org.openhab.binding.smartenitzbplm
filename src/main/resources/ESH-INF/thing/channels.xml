@@ -12,10 +12,34 @@
 	</channel-type>
 
     <!-- Level Switch -->
+	<channel-type id="switch_fast_onoff">
+		<item-type>Switch</item-type>
+		<label>Switch</label>
+		<description>Switches the power on and off without using the ramp</description>
+		<category>Light</category>
+	</channel-type>
+	
+    <!-- Level Switch -->
     <channel-type id="switch_level">
         <item-type>Dimmer</item-type>
         <label>Dimmer</label>
         <description>Sets the level of the light</description>
+        <category>Light</category>
+    </channel-type>
+    
+    <!-- Ramp Rate -->
+    <channel-type id="switch_ramp_rate">
+        <item-type>Dimmer</item-type>
+        <label>Ramp Rate</label>
+        <description>Sets the ramp rate of the dimmer</description>
+        <category>Light</category>
+    </channel-type>
+    
+    <!-- Level Swtich LED -->
+    <channel-type id="switch_level_led">
+        <item-type>Dimmer</item-type>
+        <label>LED Dimmer</label>
+        <description>Sets the level of the led on the switch</description>
         <category>Light</category>
     </channel-type>
     
@@ -72,15 +96,16 @@
         <category>HVAC</category>
         <state>
             <options>
-                <option value="0">Off</option>
-                <option value="1">Auto</option>
-                <option value="3">Cool</option>
+                <option value="9">Off</option>
+                <option value="6">Auto</option>
+                <option value="10">Program</option>
+                <option value="5">Cool</option>
                 <option value="4">Heat</option>
-                <option value="5">Emergency Heating</option>
+                <!-- <option value="5">Emergency Heating</option>
                 <option value="6">Precooling</option>
                 <option value="7">Fan Only</option>
                 <option value="8">Dry</option>
-                <option value="9">Sleep</option>
+                <option value="9">Sleep</option> -->
             </options>
         </state>
     </channel-type>
