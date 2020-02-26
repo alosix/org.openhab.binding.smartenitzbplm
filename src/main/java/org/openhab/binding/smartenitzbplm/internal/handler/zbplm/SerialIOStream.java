@@ -173,11 +173,11 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 		if(SerialPortEvent.DATA_AVAILABLE == event.getEventType()) {
 			try {
 				int available = inputStream.available();
-				byte buffer[] = new byte[32];
+				byte buffer[] = new byte[available];
 				int totalRead = 0;
 				while (totalRead < available) {
 					int read = inputStream.read(buffer);
-					logger.debug("Read {} bytes", read);
+					logger.info("Read {} bytes", read);
 					msgFactory.addData(buffer, read);
 
 					for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {

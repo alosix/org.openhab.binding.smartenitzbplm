@@ -14,7 +14,10 @@ package org.openhab.binding.smartenitzbplm.internal.message;
 
 import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
@@ -40,14 +43,19 @@ public class MsgFactory {
     // no idea what the max msg length could be, but
     // I doubt it'll ever be larger than 4k
     private final static int MAX_MSG_LEN = 16384;
-    //private byte[] m_buf = new byte[MAX_MSG_LEN];
-    //private int m_end = 0; // offset of end of buffer
-    private final ByteBuffer buffer = ByteBuffer.allocate(MAX_MSG_LEN);
-
+    private PipedInputStream pipedInputStream = new PipedInputStream(MAX_MSG_LEN);
+    private BufferedInputStream buffer = new BufferedInputStream(pipedInputStream);
+    private PipedOutputStream pipedOutputStream = null;
+    
     /**
      * Constructor
      */
     public MsgFactory() {
+    	try {
+			pipedOutputStream = new PipedOutputStream(pipedInputStream);
+		} catch (IOException e) {
+			logger.error("Unable to create Piped Output stream", e);
+		}
     }
 
     /**
@@ -56,14 +64,13 @@ public class MsgFactory {
      * @param data data to be added
      * @param len length of data to be added
      */
-    public boolean addData(byte[] data, int len) {
-    	if(buffer.limit() > len) {
-    		logger.warn("Buffer cannot take message of length {}", len);
-    		return false;
-    	}
-
-    	buffer.put(data, 0, len);
-        return true;
+    public void addData(byte[] data, int length) {
+    	logger.info("added {} bytes to the stream", length);
+    	try {
+			pipedOutputStream.write(data,  0, length);
+		} catch (IOException e) {
+			logger.error("Unable to write data to the piped stream");
+		}
     }
 
     /**
@@ -75,12 +82,17 @@ public class MsgFactory {
      * @throws IOException if data was received with unknown command codes
      */
     public Msg processData() throws IOException {
+    	logger.info("processing data");
     	// Save our position before we start pulling things off so we can reset if needed
     	// and wait for more data
-    	buffer.mark();
+    	buffer.mark(64); // we don't have any messages near this long yet
 
     	// handle the case where we get a pure nack
-    	byte header = buffer.get();
+    	if(buffer.available() < 2) {
+    		// 2 is the smallest message and if the data's not there we'll hang on the read.. lame I know
+    		return null;
+    	}
+    	byte header = (byte) buffer.read();
         if (header == 0x15) {
             logger.trace("got pure nack!");
             try {
@@ -102,18 +114,18 @@ public class MsgFactory {
         // when more data has come in.
         int msgLen = -1;
         boolean isExtended = false;
-        if(buffer.hasRemaining()) {
+        if(buffer.available() > 0) {
             // we have some data, but do we have enough to read the entire header?
-        	byte command = buffer.get();
+        	byte command = (byte) buffer.read();
             int headerLength = Msg.getHeaderLength(command);
             
             if(headerLength < 0) {
-            	logger.warn("Got unknown command code {}", command);
+            	logger.warn("Got unknown command code {}", Integer.toHexString(command));
             	drainBuffer();
             	return null;
             }
             
-            if(buffer.remaining() < (headerLength-2)) { // -2 since we've already pulled 2 of the header bytes out
+            if(buffer.available() < (headerLength-2)) { // -2 since we've already pulled 2 of the header bytes out
             	// Reset to the mark before the header so we can wait for more data
             	logger.info("Not enough data yet for the header, returning null");
             	buffer.reset();
@@ -124,7 +136,7 @@ public class MsgFactory {
             headerBytes[0] = header;
             headerBytes[1] = command;
             // and then get the rest of the header
-            buffer.get(headerBytes, 2, headerLength-2);
+            buffer.read(headerBytes, 2, headerLength-2);
             
             isExtended = Msg.isExtended(headerBytes);
             logger.info("header length expected: {} extended: {}", headerLength, isExtended);
@@ -137,15 +149,19 @@ public class MsgFactory {
             	return null;
             }
             
-            if(buffer.remaining() < messageLength) {
+            if(buffer.available() < (messageLength - headerLength)) {
             	logger.info("Not enough data yet to read the message");
             	buffer.reset();
             	return null;
             }
             
             byte [] messageBytes = new byte[messageLength];
-            buffer.get(messageBytes);
+            // reset the buffer back to where we started, then grab the whole thing
+            buffer.reset();
+            buffer.read(messageBytes);
+            
             Msg msg = Msg.createMessage(messageBytes, messageLength, isExtended);
+            logger.info("created a message!! {}" , msg);
             return msg;
         }
         
@@ -153,17 +169,20 @@ public class MsgFactory {
 
     }
 
-    private void bail(String txt) {
-        drainBuffer(); // this will drain until end or it finds the next 0x02
-        logger.warn(txt);
-        //throw new IOException(txt);
-    }
+//    private void bail(String txt) {
+//        drainBuffer(); // this will drain until end or it finds the next 0x02
+//        logger.warn(txt);
+//        //throw new IOException(txt);
+//    }
 
-    private void drainBuffer() {
+    private void drainBuffer() throws IOException {
     	byte current = (byte) 0x00;
-    	while(buffer.hasRemaining() && current != 0x02) {
-    		current = buffer.get();;
+    	while(buffer.available() > 0 && current != 0x02) {
+    		buffer.mark(2);
+    		current = (byte) buffer.read();
     	}
+    	buffer.reset();    	
+    	
     }
 
 
