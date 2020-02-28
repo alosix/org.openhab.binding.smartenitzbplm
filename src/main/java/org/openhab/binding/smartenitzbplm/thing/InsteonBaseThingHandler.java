@@ -105,8 +105,6 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 					}
 					Msg msg = MsgFactory.makeStandardMessage(address, (byte) 0x0f, (byte) 0x19, (byte) 0x00);
 					handler.sendMsg(msg);
-					//msg = MsgFactory.makeExtendedMessage(address, (byte) 0x1f, (byte) 0x2e, (byte) 0x00);
-					//handler.sendMsg(msg);
 					pollSinceLastMessage++;
 
 				} catch (IOException | FieldException e) {
@@ -119,4 +117,11 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 		scheduledExecutors.scheduleAtFixedRate(runnable, 0,  5, TimeUnit.MINUTES);
 	}
 
+	@Override
+	public void dispose() {
+		super.dispose();
+		this.handler.removeInsteonMsgListener(this);
+	}
+
+	
 }

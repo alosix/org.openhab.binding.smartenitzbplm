@@ -25,6 +25,7 @@ import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
+import org.openhab.binding.smartenitzbplm.thing.InsteonBaseThingHandler;
 import org.openhab.binding.smartenitzbplm.thing.listener.InsteonMsgListener;
 import org.openhab.binding.smartenitzbplm.thing.listener.ShutdownMsg;
 import org.slf4j.Logger;
@@ -130,6 +131,18 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 		//executorService.execute(msgRunnable);
 
 	}
+	
+	public void removeInsteonMsgListener(InsteonMsgListener listener) {
+		BlockingQueue<Msg> queue = messageQueues.get(listener);
+		if(queue == null) {
+			// nothing to do here, move along
+			return;
+		}
+		
+		queue.add(new ShutdownMsg());
+		messageQueues.remove(listener);
+		
+	}
 
 	@Override
 	public void msg(Msg msg, ZBPLMHandler handler) {
@@ -209,5 +222,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	public MsgFactory getMsgFactory() {
 		return msgFactory;
 	}
+
+	
 
 }

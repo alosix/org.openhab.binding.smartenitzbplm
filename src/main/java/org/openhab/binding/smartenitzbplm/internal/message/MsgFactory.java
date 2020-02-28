@@ -65,8 +65,8 @@ public class MsgFactory {
      * @param len length of data to be added
      */
     public void addData(byte[] data, int length) {
-    	logger.info("added {} bytes to the stream", length);
     	try {
+    		logger.info("added {} bytes to the stream {} bytes left in input stream", length, MAX_MSG_LEN - pipedInputStream.available());
 			pipedOutputStream.write(data,  0, length);
 		} catch (IOException e) {
 			logger.error("Unable to write data to the piped stream");
@@ -82,7 +82,7 @@ public class MsgFactory {
      * @throws IOException if data was received with unknown command codes
      */
     public Msg processData() throws IOException {
-    	logger.info("processing data");
+    	logger.info("processing data bytes left {}", buffer.available());
     	// Save our position before we start pulling things off so we can reset if needed
     	// and wait for more data
     	buffer.mark(64); // we don't have any messages near this long yet
@@ -107,7 +107,7 @@ public class MsgFactory {
         	// drain till the next message or the end
         	// the next call will pick that up
         	drainBuffer();
-        	return null;
+        	return processData();
         }
         // Now see if we have enough data for a complete message.
         // If not, we return null, and expect this method to be called again
@@ -122,7 +122,11 @@ public class MsgFactory {
             if(headerLength < 0) {
             	logger.warn("Got unknown command code {}", Integer.toHexString(command));
             	drainBuffer();
-            	return null;
+            	if(buffer.available() > 2) {
+            		return processData();
+            	} else {
+            		return null;
+            	}
             }
             
             if(buffer.available() < (headerLength-2)) { // -2 since we've already pulled 2 of the header bytes out
@@ -144,24 +148,24 @@ public class MsgFactory {
             int messageLength = Msg.getMessageLength(command, isExtended);
             
             if(messageLength < 0) {
-            	logger.warn("Unable to find length for command {} isExtended {}", command, isExtended);
+            	logger.warn("Unable to find length for command {} isExtended {}", Utils.getHexString(command), isExtended);
             	drainBuffer();
             	return null;
             }
             
-            if(buffer.available() < (messageLength - headerLength)) {
-            	logger.info("Not enough data yet to read the message");
-            	buffer.reset();
+            // reset the mark as we're going to read or return
+            buffer.reset();
+            if(buffer.available() < messageLength) {
+            	logger.info("Not enough data yet to read the message for command {} length {} bytes available {}", Utils.getHexString(command), messageLength, buffer.available());
             	return null;
             }
             
             byte [] messageBytes = new byte[messageLength];
             // reset the buffer back to where we started, then grab the whole thing
-            buffer.reset();
             buffer.read(messageBytes);
             
             Msg msg = Msg.createMessage(messageBytes, messageLength, isExtended);
-            logger.info("created a message!! {}" , msg);
+            logger.info("bytes left {} created a message!! {}" , msg, buffer.available());
             return msg;
         }
         
@@ -271,6 +275,20 @@ public class MsgFactory {
 		m.setUserData(data);
 		m.setCRC();
 		return m;
+	}
+	
+	/**
+	 * Helper method to make extended message, but with different CRC calculation
+	 * 
+	 * @param flags
+	 * @param cmd1
+	 * @param cmd2
+	 * @return extended message
+	 * @throws FieldException
+	 * @throws IOException
+	 */
+	public static  Msg makeExtendedMessageCRC2(DeviceAddress address, byte flags, byte cmd1, byte cmd2) throws FieldException, IOException {
+		return makeExtendedMessageCRC2(address, flags, cmd1, cmd2, new byte[] {});
 	}
 
 	/**

@@ -179,6 +179,7 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 					int read = inputStream.read(buffer);
 					logger.info("Read {} bytes", read);
 					msgFactory.addData(buffer, read);
+					// TODO This should probably be in another thread now so things have less chance of blocking
 
 					for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
 						inboundQueue.put(m);

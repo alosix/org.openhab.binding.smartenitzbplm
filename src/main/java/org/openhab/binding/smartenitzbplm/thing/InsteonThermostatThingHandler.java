@@ -42,16 +42,21 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 		}
 		
 		logger.info("Got a message in the thermostat:" + msg.toString());
+		pollSinceLastMessage = 0;
+		updateStatus(ThingStatus.ONLINE);
+		
 		try {
 			if (msg.getName().equals(STANDARD_MESSAGE_RECEIVED)) {
+				
+				
 			}
 
-			if (msg.getName().equals(READ_DATA_2_RECIEVED)) {
+			if (msg.getName().equals(EXTENDED_MESSAGE_RECIEVED)) {
 				int mode = msg.getByte(USER_DATA_6) ;
 				int coolPoint = msg.getByte(USER_DATA_7);
 				int humidity = msg.getByte(USER_DATA_8);
-				int temp = msg.getByte(USER_DATA_10);
-				temp |= msg.getByte(USER_DATA_9) << 8;
+				int temp = ((int) msg.getByte(USER_DATA_10)) & 0xff;
+				temp |= (((int) msg.getByte(USER_DATA_9)) & 0xff) << 8;
 				int status = msg.getByte(USER_DATA_11);
 				int heatPoint = msg.getByte(USER_DATA_12);
 				
@@ -62,7 +67,7 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 				updateState(THERMOSTAT_HEATING, new DecimalType(heatPoint));
 				updateState(THERMOSTAT_RUNNIGNMODE, new DecimalType(status));
 				
-				
+		
 				
 
 			}
@@ -78,6 +83,7 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 	 * Base init asks for the insteon status
 	 */
 	public void init() {
+		logger.info("Scheduling thermostat update");
 		final DeviceAddress address = this.address;
 		Runnable runnable = new Runnable() {
 			
@@ -87,7 +93,7 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 					if(pollSinceLastMessage > 2) {
 						updateStatus(ThingStatus.UNKNOWN);
 					}
-					Msg msg = MsgFactory.makeExtendedMessage(address, (byte) 0x1f, (byte) 0x2e, (byte) 0x02);
+					Msg msg = MsgFactory.makeExtendedMessageCRC2(address, (byte) 0x1f, (byte) 0x2e, (byte) 0x02);
 					handler.sendMsg(msg);
 					pollSinceLastMessage++;
 
