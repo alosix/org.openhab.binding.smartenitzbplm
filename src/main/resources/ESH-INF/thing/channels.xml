@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<thing:thing-descriptions bindingId="smartenitzbplm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<thing:thing-descriptions
+	bindingId="smartenitzbplm"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
 	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
 
@@ -11,118 +13,143 @@
 		<category>Light</category>
 	</channel-type>
 
-    <!-- Level Switch -->
+	<!-- Level Switch -->
 	<channel-type id="switch_fast_onoff">
 		<item-type>Switch</item-type>
 		<label>Switch</label>
 		<description>Switches the power on and off without using the ramp</description>
 		<category>Light</category>
 	</channel-type>
+
+	<!-- Level Switch -->
+	<channel-type id="switch_level">
+		<item-type>Dimmer</item-type>
+		<label>Dimmer</label>
+		<description>Sets the level of the light</description>
+		<category>Light</category>
+	</channel-type>
+
+	<!-- Ramp Rate -->
+	<channel-type id="switch_ramp_rate">
+		<item-type>Dimmer</item-type>
+		<label>Ramp Rate</label>
+		<description>Sets the ramp rate of the dimmer</description>
+		<category>Light</category>
+	</channel-type>
+
+	<!-- Level Swtich LED -->
+	<channel-type id="switch_level_led">
+		<item-type>Dimmer</item-type>
+		<label>LED Dimmer</label>
+		<description>Sets the level of the led on the switch</description>
+		<category>Light</category>
+	</channel-type>
+
+	<!-- Thermostat Local Temperature -->
+	<channel-type id="thermostat_localtemp">
+		<item-type>Number:Temperature</item-type>
+		<label>Local Temperature</label>
+		<description>Indicates the local temperature provided by the thermostat</description>
+		<category>HVAC</category>
+		<state pattern="%.1f %unit%" readOnly="true" />
+	</channel-type>
+
+	<!-- Thermostat Local Humidity -->
+	<channel-type id="thermostat_localhumidity">
+		<item-type>Number:Humidity</item-type>
+		<label>Local Humidity</label>
+		<description>Indicates the local humidity provided by the thermostat</description>
+		<category>HVAC</category>
+		<state pattern="%.1f %unit%" readOnly="true" />
+	</channel-type>
+
+	<!-- Thermostat Outdoor Temperature -->
+	<channel-type id="thermostat_outdoortemp">
+		<item-type>Number:Temperature</item-type>
+		<label>Outdoor Temperature</label>
+		<description>Indicates the outdoor temperature provided by the thermostat</description>
+		<category>HVAC</category>
+		<state pattern="%.1f %unit%" readOnly="true" />
+	</channel-type>
+
+	<!-- Thermostat Heating -->
+	<channel-type id="thermostat_heating">
+		<item-type>Number:Temperature</item-type>
+		<label>Heating Setpoint</label>
+		<description>Set the heating temperature</description>
+		<category>HVAC</category>
+		<state pattern="%.1f %unit%" />
+	</channel-type>
+
+	<!-- Thermostat Occupied Cooling -->
+	<channel-type id="thermostat_cooling">
+		<item-type>Number:Temperature</item-type>
+		<label>Cooling Setpoint</label>
+		<description>Set the cooling temperature</description>
+		<category>HVAC</category>
+		<state pattern="%.1f %unit%" />
+	</channel-type>
+
+	<!-- Thermostat System Mode -->
+	<channel-type id="thermostat_systemmode">
+		<item-type>Number</item-type>
+		<label>System Mode</label>
+		<description>Set the system mode of the thermostat</description>
+		<category>HVAC</category>
+		<state>
+			<options>
+				<option value="9">Off</option>
+				<option value="6">Auto</option>
+				<option value="10">Program</option>
+				<option value="5">Cool</option>
+				<option value="4">Heat</option>
+				<!-- <option value="5">Emergency Heating</option> <option value="6">Precooling</option> 
+					<option value="7">Fan Only</option> <option value="8">Dry</option> <option 
+					value="9">Sleep</option> -->
+			</options>
+		</state>
+	</channel-type>
+
+	<!-- Thermostat Running Mode -->
+	<channel-type id="thermostat_runningmode">
+		<item-type>Number</item-type>
+		<label>Running Mode</label>
+		<description>The running mode of the thermostat</description>
+		<category>HVAC</category>
+		<state readOnly="true">
+			<options>
+				<option value="0">Off</option>
+				<option value="3">Cool</option>
+				<option value="4">Heat</option>
+			</options>
+		</state>
+	</channel-type>
+
+	<!-- Modem stats -->
+	<channel-type id="modem_bytes_sent">
+		<item-type>Number</item-type>
+		<label>Modem bytes sent</label>
+		<description>The number of bytes sent from the modem in an instant</description>
+		<category>NetworkAppliance</category>
+		<state pattern="%d" readOnly="true" />
+	</channel-type>
+
+	<channel-type id="modem_bytes_received">
+		<item-type>Number</item-type>
+		<label>Modem bytes received</label>
+		<description>The number of bytes received by the modem in an instant</description>
+		<category>NetworkAppliance</category>
+		<state pattern="%d" readOnly="true" />
+	</channel-type>
+	<channel-type id="modem_msg_buffer_size">
+		<item-type>Number</item-type>
+		<label>The number of bytes currently in the modem message buffer</label>
+		<description>The number of bytes in the modem message buffer</description>
+		<category>NetworkAppliance</category>
+		<state pattern="%d" readOnly="true" />
+	</channel-type>
 	
-    <!-- Level Switch -->
-    <channel-type id="switch_level">
-        <item-type>Dimmer</item-type>
-        <label>Dimmer</label>
-        <description>Sets the level of the light</description>
-        <category>Light</category>
-    </channel-type>
-    
-    <!-- Ramp Rate -->
-    <channel-type id="switch_ramp_rate">
-        <item-type>Dimmer</item-type>
-        <label>Ramp Rate</label>
-        <description>Sets the ramp rate of the dimmer</description>
-        <category>Light</category>
-    </channel-type>
-    
-    <!-- Level Swtich LED -->
-    <channel-type id="switch_level_led">
-        <item-type>Dimmer</item-type>
-        <label>LED Dimmer</label>
-        <description>Sets the level of the led on the switch</description>
-        <category>Light</category>
-    </channel-type>
-    
-     <!-- Thermostat Local Temperature -->
-    <channel-type id="thermostat_localtemp">
-        <item-type>Number:Temperature</item-type>
-        <label>Local Temperature</label>
-        <description>Indicates the local temperature provided by the thermostat</description>
-        <category>HVAC</category>
-        <state pattern="%.1f %unit%" readOnly="true"/>
-    </channel-type>
-    
-    <!-- Thermostat Local Humidity -->
-    <channel-type id="thermostat_localhumidity">
-        <item-type>Number:Humidity</item-type>
-        <label>Local Humidity</label>
-        <description>Indicates the local humidity provided by the thermostat</description>
-        <category>HVAC</category>
-        <state pattern="%.1f %unit%" readOnly="true"/>
-    </channel-type>
+	
 
-    <!-- Thermostat Outdoor Temperature -->
-    <channel-type id="thermostat_outdoortemp">
-        <item-type>Number:Temperature</item-type>
-        <label>Outdoor Temperature</label>
-        <description>Indicates the outdoor temperature provided by the thermostat</description>
-        <category>HVAC</category>
-        <state pattern="%.1f %unit%" readOnly="true"/>
-    </channel-type>
 
-    <!-- Thermostat Heating -->
-    <channel-type id="thermostat_heating">
-        <item-type>Number:Temperature</item-type>
-        <label>Heating Setpoint</label>
-        <description>Set the heating temperature</description>
-        <category>HVAC</category>
-        <state pattern="%.1f %unit%"/>
-    </channel-type>
-
-    <!-- Thermostat Occupied Cooling -->
-    <channel-type id="thermostat_cooling">
-        <item-type>Number:Temperature</item-type>
-        <label>Cooling Setpoint</label>
-        <description>Set the cooling temperature</description>
-        <category>HVAC</category>
-        <state pattern="%.1f %unit%"/>
-    </channel-type>
-
-    <!-- Thermostat System Mode -->
-    <channel-type id="thermostat_systemmode">
-        <item-type>Number</item-type>
-        <label>System Mode</label>
-        <description>Set the system mode of the thermostat</description>
-        <category>HVAC</category>
-        <state>
-            <options>
-                <option value="9">Off</option>
-                <option value="6">Auto</option>
-                <option value="10">Program</option>
-                <option value="5">Cool</option>
-                <option value="4">Heat</option>
-                <!-- <option value="5">Emergency Heating</option>
-                <option value="6">Precooling</option>
-                <option value="7">Fan Only</option>
-                <option value="8">Dry</option>
-                <option value="9">Sleep</option> -->
-            </options>
-        </state>
-    </channel-type>
-
-    <!-- Thermostat Running Mode -->
-    <channel-type id="thermostat_runningmode">
-        <item-type>Number</item-type>
-        <label>Running Mode</label>
-        <description>The running mode of the thermostat</description>
-        <category>HVAC</category>
-        <state readOnly="true">
-            <options>
-                <option value="0">Off</option>
-                <option value="3">Cool</option>
-                <option value="4">Heat</option>
-            </options>
-        </state>
-    </channel-type>
-    
 </thing:thing-descriptions>

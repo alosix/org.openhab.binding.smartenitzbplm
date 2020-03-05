@@ -1,10 +1,11 @@
 package org.openhab.binding.smartenitzbplm.thing;
 
+import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
+
 import java.io.IOException;
+import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
 
 import org.eclipse.smarthome.core.common.ThreadPoolManager;
 import org.eclipse.smarthome.core.thing.ChannelUID;
@@ -16,7 +17,6 @@ import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddressFactory;
-import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
 import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
@@ -33,6 +33,7 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 	protected DeviceAddress address;
 	protected ZBPLMHandler handler;
 	protected ScheduledExecutorService scheduledExecutors = ThreadPoolManager.getScheduledPool(SCHEDULED_POOL);
+	protected Random random = new Random();
 	
 	protected int pollSinceLastMessage = 0;
 
@@ -114,7 +115,7 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 			}
 		};
 		// run the status right now, and every 5  minutes
-		scheduledExecutors.scheduleAtFixedRate(runnable, 0,  5, TimeUnit.MINUTES);
+		scheduledExecutors.scheduleAtFixedRate(runnable, random.nextInt(60),  120, TimeUnit.SECONDS);
 	}
 
 	@Override

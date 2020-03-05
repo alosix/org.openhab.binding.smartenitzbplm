@@ -20,6 +20,7 @@ id dev cat: 01 subcat: 0e firmware: 43 hardware: 36
 		<category>HVAC</category>
 		<channels>
 			<channel id="thermostat_localhumidity" typeId="thermostat_localhumidity" />
+			<channel id="thermostat_localtemp" typeId="thermostat_localtemp" />
 			<channel id="thermostat_outdoortemp" typeId="thermostat_outdoortemp" />
 			<channel id="thermostat_heating" typeId="thermostat_heating" />
 			<channel id="thermostat_cooling" typeId="thermostat_cooling" />

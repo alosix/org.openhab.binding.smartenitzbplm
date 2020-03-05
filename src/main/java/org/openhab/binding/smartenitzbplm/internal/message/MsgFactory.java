@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 
 import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.device.InsteonAddress;
+import org.openhab.binding.smartenitzbplm.internal.handler.zbplm.ZBPLMHandler;
 import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,12 +47,14 @@ public class MsgFactory {
     private PipedInputStream pipedInputStream = new PipedInputStream(MAX_MSG_LEN);
     private BufferedInputStream buffer = new BufferedInputStream(pipedInputStream);
     private PipedOutputStream pipedOutputStream = null;
+	private ZBPLMHandler handler;
     
     /**
      * Constructor
      */
-    public MsgFactory() {
+    public MsgFactory(ZBPLMHandler handler) {
     	try {
+    		this.handler = handler;
 			pipedOutputStream = new PipedOutputStream(pipedInputStream);
 		} catch (IOException e) {
 			logger.error("Unable to create Piped Output stream", e);
@@ -66,6 +69,7 @@ public class MsgFactory {
      */
     public void addData(byte[] data, int length) {
     	try {
+    		handler.logBytesReceived(length);
     		logger.info("added {} bytes to the stream {} bytes left in input stream", length, MAX_MSG_LEN - pipedInputStream.available());
 			pipedOutputStream.write(data,  0, length);
 		} catch (IOException e) {
@@ -82,6 +86,7 @@ public class MsgFactory {
      * @throws IOException if data was received with unknown command codes
      */
     public Msg processData() throws IOException {
+    	handler.logMsgBufferSize(buffer.available());
     	logger.info("processing data bytes left {}", buffer.available());
     	// Save our position before we start pulling things off so we can reset if needed
     	// and wait for more data
@@ -90,6 +95,7 @@ public class MsgFactory {
     	// handle the case where we get a pure nack
     	if(buffer.available() < 2) {
     		// 2 is the smallest message and if the data's not there we'll hang on the read.. lame I know
+    		buffer.reset();
     		return null;
     	}
     	byte header = (byte) buffer.read();
@@ -106,13 +112,13 @@ public class MsgFactory {
         if (header != 0x02) {
         	// drain till the next message or the end
         	// the next call will pick that up
+        	logger.warn("Incorrect header {}", Integer.toHexString(header));
         	drainBuffer();
         	return processData();
         }
         // Now see if we have enough data for a complete message.
         // If not, we return null, and expect this method to be called again
         // when more data has come in.
-        int msgLen = -1;
         boolean isExtended = false;
         if(buffer.available() > 0) {
             // we have some data, but do we have enough to read the entire header?
@@ -180,10 +186,13 @@ public class MsgFactory {
 //    }
 
     private void drainBuffer() throws IOException {
-    	byte current = (byte) 0x00;
-    	while(buffer.available() > 0 && current != 0x02) {
-    		buffer.mark(2);
-    		current = (byte) buffer.read();
+		buffer.mark(2);
+    	while(buffer.available() > 0) {
+    		int current = (byte) buffer.read();
+    		if(current == 0x02) {
+    			buffer.reset();
+    		}
+    		buffer.mark(1);
     	}
     	buffer.reset();    	
     	

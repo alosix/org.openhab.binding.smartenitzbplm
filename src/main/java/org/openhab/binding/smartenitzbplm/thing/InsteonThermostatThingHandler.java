@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.smarthome.core.library.types.DecimalType;
+import org.eclipse.smarthome.core.library.types.PercentType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
@@ -13,6 +14,7 @@ import org.openhab.binding.smartenitzbplm.internal.device.DeviceAddress;
 import org.openhab.binding.smartenitzbplm.internal.message.FieldException;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
+import org.openhab.binding.smartenitzbplm.internal.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +32,26 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 	public void handleCommand(ChannelUID channelUID, Command command) {
 		super.handleCommand(channelUID, command);
 		logger.info("got a command {} for channel {}", command, channelUID);
-		
+		try {
+			String channel = channelUID.getIdWithoutGroup();
+			if (THERMOSTAT_HEATING.equals(channel) && command instanceof Number) {
+				Number heatType = (Number) command;
+				logger.info("Setting headpoint to: {} {}", command, heatType.intValue());
+				int heatPoint = heatType.intValue() * 2;
+				Msg msg = MsgFactory.makeExtendedMessage(address, (byte) 0x1f, (byte) 0x6d, (byte) heatPoint);
+				handler.sendMsg(msg);
+
+			} else if (THERMOSTAT_COOLING.contentEquals(channel) && command instanceof Number) {
+				Number coolType = (Number) command;
+				logger.info("Setting coolpoint to: {} {}", command, coolType.intValue());
+				int coolPoint = coolType.intValue() * 2;
+				Msg msg = MsgFactory.makeExtendedMessage(address, (byte) 0x1f, (byte) 0x6c, (byte) coolPoint);
+				handler.sendMsg(msg);
+			}
+
+		} catch (FieldException | IOException e) {
+			logger.error("Unable to update thermostat", e);
+		}
 	}
 
 	@Override
@@ -40,35 +61,40 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 		if (!this.address.equals(msg.getAddr(FROM_ADDRESS))) {
 			return;
 		}
-		
+
 		logger.info("Got a message in the thermostat:" + msg.toString());
 		pollSinceLastMessage = 0;
 		updateStatus(ThingStatus.ONLINE);
-		
+
 		try {
 			if (msg.getName().equals(STANDARD_MESSAGE_RECEIVED)) {
-				
-				
+
 			}
 
-			if (msg.getName().equals(EXTENDED_MESSAGE_RECIEVED)) {
-				int mode = msg.getByte(USER_DATA_6) ;
-				int coolPoint = msg.getByte(USER_DATA_7);
-				int humidity = msg.getByte(USER_DATA_8);
+			if (msg.getName().equals(EXTENDED_MESSAGE_RECIEVED) && msg.getByte(COMMAND_1) == (byte) 0x2e) {
+				int mode = msg.getByte(USER_DATA_6) & 0xff;
+				int coolPoint = msg.getByte(USER_DATA_7) & 0xff;
+				int humidity = msg.getByte(USER_DATA_8) & 0xff;
 				int temp = ((int) msg.getByte(USER_DATA_10)) & 0xff;
 				temp |= (((int) msg.getByte(USER_DATA_9)) & 0xff) << 8;
-				int status = msg.getByte(USER_DATA_11);
-				int heatPoint = msg.getByte(USER_DATA_12);
-				
-				updateState(THERMOSTAT_SYSTEMMODE, new DecimalType(mode));
+				int status = msg.getByte(USER_DATA_11) & 0xff;
+				int heatPoint = msg.getByte(USER_DATA_12) & 0xff;
+
+				double celsius = (double) temp * 0.1;
+				double fahrenheit = (9.0 / 5.0) * celsius + 32;
+
+				int systemMode = mode & 0x0f >> 4;
+				int fanMode = mode & 0xf0 >> 0;
+
+				logger.info("System mode {} running mode {}", Utils.getHexString(systemMode),
+						Utils.getHexString(status));
+
+				updateState(THERMOSTAT_SYSTEMMODE, new DecimalType(systemMode));
 				updateState(THERMOSTAT_COOLING, new DecimalType(coolPoint));
-				updateState(THERMOSTAT_LOCALHUMIDITY, new DecimalType(humidity));
-				updateState(THERMOSTAT_LOCALTEMP, new DecimalType((double)temp * 0.1));
+				updateState(THERMOSTAT_LOCALHUMIDITY, new PercentType(humidity));
+				updateState(THERMOSTAT_LOCALTEMP, new DecimalType(fahrenheit));
 				updateState(THERMOSTAT_HEATING, new DecimalType(heatPoint));
 				updateState(THERMOSTAT_RUNNIGNMODE, new DecimalType(status));
-				
-		
-				
 
 			}
 		} catch (FieldException e) {
@@ -76,9 +102,8 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 			return;
 		}
 
-
 	}
-	
+
 	/**
 	 * Base init asks for the insteon status
 	 */
@@ -86,11 +111,11 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 		logger.info("Scheduling thermostat update");
 		final DeviceAddress address = this.address;
 		Runnable runnable = new Runnable() {
-			
+
 			@Override
 			public void run() {
 				try {
-					if(pollSinceLastMessage > 2) {
+					if (pollSinceLastMessage > 2) {
 						updateStatus(ThingStatus.UNKNOWN);
 					}
 					Msg msg = MsgFactory.makeExtendedMessageCRC2(address, (byte) 0x1f, (byte) 0x2e, (byte) 0x02);
@@ -100,14 +125,13 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 				} catch (IOException | FieldException e) {
 					logger.error("Unable to send status message", e);
 				}
-				
+
 			}
 		};
-		// run the status right now, and every 5  minutes
-		scheduledExecutors.scheduleAtFixedRate(runnable, 0,  5, TimeUnit.MINUTES);
+		// run the status right now, and every 5 minutes
+		scheduledExecutors.scheduleAtFixedRate(runnable, random.nextInt(60), 60, TimeUnit.SECONDS);
 	}
 
-	
 	public int transformFanMode(int cmd) {
 		switch (cmd) {
 		case 0:

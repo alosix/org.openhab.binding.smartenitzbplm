@@ -1,6 +1,7 @@
 package org.openhab.binding.smartenitzbplm.internal.handler.zbplm;
 
 import static org.openhab.binding.smartenitzbplm.internal.SmartenItZBPLMBindingConstants.*;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import org.eclipse.smarthome.core.common.ThreadPoolManager;
+import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -25,7 +27,6 @@ import org.openhab.binding.smartenitzbplm.internal.device.InsteonDevice;
 import org.openhab.binding.smartenitzbplm.internal.message.Msg;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgFactory;
 import org.openhab.binding.smartenitzbplm.internal.message.MsgListener;
-import org.openhab.binding.smartenitzbplm.thing.InsteonBaseThingHandler;
 import org.openhab.binding.smartenitzbplm.thing.listener.InsteonMsgListener;
 import org.openhab.binding.smartenitzbplm.thing.listener.ShutdownMsg;
 import org.slf4j.Logger;
@@ -45,7 +46,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 	private Port port = null;
 	private IOStream ioStream = null;
 	private SerialPortManager serialPortManager;
-	private MsgFactory msgFactory = new MsgFactory();
+	private MsgFactory msgFactory = null;
 	private DeviceTypeLoader deviceTypeLoader;
 	private ZBPLMConfig config = null;
 	private ExecutorService executorService = ThreadPoolManager.getPool(COMMAND_POOL);
@@ -64,6 +65,7 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 		this.serialPortManager = serialPortManager;
 		this.deviceTypeLoader = deviceTypeLoader;
 		this.devices = new ConcurrentHashMap<>();
+		this.msgFactory = new MsgFactory(this);
 
 	}
 
@@ -128,8 +130,6 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 		};
 		Thread listenerThread = new Thread(msgRunnable, listener.getAddress() + ": message thread");
 		listenerThread.start();
-		//executorService.execute(msgRunnable);
-
 	}
 	
 	public void removeInsteonMsgListener(InsteonMsgListener listener) {
@@ -154,12 +154,22 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 
 	public void sendMsg(Msg msg) {
 		try {
+			updateState(MODEM_BYTES_SENT,new DecimalType(msg.getData().length));
 			port.writeMessage(msg);
 		} catch (IOException e) {
 			logger.error("Unable to write message" + msg.toString(), e);
 		}
 	}
 
+	public void logBytesReceived(long bytesCount) {
+		updateState(MODEM_BYTES_RECEIVED, new DecimalType(bytesCount));
+	}
+	
+	public void logMsgBufferSize(long bufferSize) {
+		updateState(MODEM_MSG_BUFFER_SIZE, new DecimalType(bufferSize));
+	}
+	
+	
 	public Bridge getBridge() {
 		return super.getBridge();
 	}
@@ -184,24 +194,6 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 		}
 	}
 
-	@Override
-	public void handleConfigurationUpdate(Map<String, Object> configurationParameters) {
-		// TODO Auto-generated method stub
-		super.handleConfigurationUpdate(configurationParameters);
-	}
-
-	@Override
-	public void thingUpdated(Thing thing) {
-		// TODO Auto-generated method stub
-		super.thingUpdated(thing);
-	}
-
-	@Override
-	public void handleCommand(ChannelUID channelUID, Command command) {
-		logger.info("Got a command:" + channelUID.toString() + ":" + command.toFullString());
-		// TODO Auto-generated method stub
-
-	}
 
 	public ConcurrentMap<InsteonAddress, InsteonDevice> getDevices() {
 		return devices;
@@ -221,6 +213,12 @@ public class ZBPLMHandler extends BaseBridgeHandler implements MsgListener {
 
 	public MsgFactory getMsgFactory() {
 		return msgFactory;
+	}
+
+	@Override
+	public void handleCommand(ChannelUID channelUID, Command command) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	

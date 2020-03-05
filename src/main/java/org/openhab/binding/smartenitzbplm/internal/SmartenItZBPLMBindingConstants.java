@@ -59,6 +59,11 @@ public class SmartenItZBPLMBindingConstants {
     public static final String THERMOSTAT_SYSTEMMODE = "thermostat_systemmode";
     public static final String THERMOSTAT_RUNNIGNMODE = "thermostat_runningmode";
     
+    public static final String MODEM_BYTES_SENT = "modem_bytes_sent";
+    public static final String MODEM_BYTES_RECEIVED = "modem_bytes_received";
+    public static final String MODEM_MSG_BUFFER_SIZE = "modem_msg_buffer_size";
+    
+    
     
     public static final ChannelTypeUID CHANNEL_SWITCH_ONOFF = new ChannelTypeUID(BINDING_ID, SWITCH_ONOFF);
     public static final ChannelTypeUID CHANNEL_SWITCH_LEVEL = new ChannelTypeUID(BINDING_ID, SWITCH_LEVEL);

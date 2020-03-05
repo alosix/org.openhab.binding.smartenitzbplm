@@ -7,6 +7,12 @@
 	<bridge-type id="coordinator_zbplm">
 		<label>SmartenIt ZBPLM</label>
 		<description>SmarteIt power line modem with Zigbee</description>
+		<channels>
+			<channel id="modem_bytes_sent" typeId="modem_bytes_sent" />
+			<channel id="modem_bytes_received" typeId="modem_bytes_received" />
+			<channel id="modem_msg_buffer_size" typeId="modem_msg_buffer_size" />
+
+		</channels>
 
 		<config-description>
 

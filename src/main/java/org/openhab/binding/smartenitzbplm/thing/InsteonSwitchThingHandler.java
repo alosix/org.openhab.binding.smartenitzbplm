@@ -45,7 +45,7 @@ public class InsteonSwitchThingHandler extends InsteonBaseThingHandler {
 					}
 				}
 				if(SWITCH_LEVEL_LED.contentEquals(channelId) && command instanceof PercentType) {
-					Msg msg = MsgFactory.makeExtendedMessage(this.address, (byte) 0x1f, (byte) 0x2e, (byte) 0x00, 
+					Msg msg = MsgFactory.makeExtendedMessageCRC2(this.address, (byte) 0x1f, (byte) 0x2e, (byte) 0x00, 
 							new byte[] {(byte) 0x01, (byte) 0x07, convertToLedLevel((PercentType) command)});
 					handler.sendMsg(msg);
 					
