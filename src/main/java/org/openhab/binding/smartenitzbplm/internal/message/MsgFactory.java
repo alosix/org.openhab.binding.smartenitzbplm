@@ -72,8 +72,8 @@ public class MsgFactory {
 	public void addData(byte[] data, int length) {
 		try {
 			handler.logBytesReceived(length);
-			logger.info("added {} bytes to the stream {} bytes left in input stream", length,
-					MAX_MSG_LEN - pipedInputStream.available());
+			//logger.info("added {} bytes to the stream {} bytes left in input stream", length,
+				//	MAX_MSG_LEN - pipedInputStream.available());
 			pipedOutputStream.write(data, 0, length);
 		} catch (IOException e) {
 			logger.error("Unable to write data to the piped stream");
@@ -151,7 +151,7 @@ public class MsgFactory {
 			int headerLength = Msg.getHeaderLength(command);
 
 			if (headerLength < 0) {
-				logger.warn("Got unknown command code {}", Integer.toHexString(command));
+				//logger.warn("Got unknown command code {}", Integer.toHexString(command));
 				// move on to the next message
 				continue;
 			}

@@ -376,11 +376,12 @@ public class Port {
 						Msg msg = writeQueue.take();
 						if (msg.getClass().isInstance(ShutdownMsg.class)) {
 							// exit the thread we're shutdown
-							logger.info("Exiting writter");
+							logger.info("Exiting writer");
 							return;
 						}
-						if (msg.getData() == null) {
+						if (msg.getData() == null || msg.getCommandNumber() < 0) {
 							logger.error("found null message in write queue!");
+							continue;
 						} else {
 							logger.debug("writing ({}): {}", msg.getQuietTime(), msg);
 							// To debug race conditions during startup (i.e. make the .items
@@ -391,7 +392,7 @@ public class Port {
 								ioStream.write(msg.getData());
 
 							int retryCount = 0;
-							while (reader.waitForReply() &&  retryCount < 5) {
+							while (reader.waitForReply() &&  retryCount < 3) {
 								Thread.sleep(WAIT_TIME);
 								logger.info("retransmitting msg: {}", msg);
 								ioStream.write(msg.getData());
