@@ -58,8 +58,11 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 		this.msgFactory = msgFactory;
 		this.portName = devName;
 		this.baudRate = speed;
+		
+		msgFactory.setInboundQueue(inboundQueue);
+		msgFactory.start();
 	}
-
+	
 	@Override
 	public String toString() {
 		return "SerialIOStream [baudRate=" + baudRate + ", portName=" + portName + "]";
@@ -148,6 +151,7 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 				logger.info("output stream closed");
 				serialPort.close();
 				logger.info("Serial port '{}' closed.", portName);
+				msgFactory.stop();
 			} else {
 				logger.info("serial port was null");
 			}
@@ -179,18 +183,14 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 					int read = inputStream.read(buffer);
 					logger.info("Read {} bytes", read);
 					msgFactory.addData(buffer, read);
-					// TODO This should probably be in another thread now so things have less chance of blocking
-
-					for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
-						inboundQueue.put(m);
-					}
+									//for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
+//						inboundQueue.put(m);
+	//				}
 					totalRead += read;
 				}
-			} catch (IOException | InterruptedException e) {
+			} catch (IOException e) {
 				logger.error("Error reading from the input stream", e);
-			} catch (Throwable t) {
-				logger.error("Thread exiting", t);
-			}	
+			} 
 		}
 		
 
