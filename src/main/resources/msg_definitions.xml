@@ -34,31 +34,7 @@
 		<byte name = "command1"/>
 		<byte name = "command2"/>
 	</msg>
-	<msg name = "StdExtendedMessageReceived" length="25" direction = "FROM_MODEM">
-		<header length="9">
-		 	<byte>0x02</byte>
-			<byte name = "Cmd">0x50</byte>
-			<address name = "fromAddress"/>
-			<address name = "toAddress"/>
-			<byte name = "messageFlags">0x10</byte>
-		</header>
-		<byte name = "command1"/>
-		<byte name = "command2"/>
-		<byte name = "userData1"/>
-		<byte name = "userData2"/>
-		<byte name = "userData3"/>
-		<byte name = "userData4"/>
-		<byte name = "userData5"/>
-		<byte name = "userData6"/>
-		<byte name = "userData7"/>
-		<byte name = "userData8"/>
-		<byte name = "userData9"/>
-		<byte name = "userData10"/>
-		<byte name = "userData11"/>
-		<byte name = "userData12"/>
-		<byte name = "userData13"/>
-		<byte name = "userData14"/>
-	</msg>
+
 
 	<msg name = "ExtendedMessageReceived" length="25" direction = "FROM_MODEM">
 		<header length="9">

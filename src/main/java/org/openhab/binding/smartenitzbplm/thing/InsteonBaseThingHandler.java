@@ -115,7 +115,7 @@ public abstract class InsteonBaseThingHandler extends BaseThingHandler implement
 			}
 		};
 		// run the status right now, and every 5  minutes
-		scheduledExecutors.scheduleAtFixedRate(runnable, random.nextInt(60),  120, TimeUnit.SECONDS);
+		scheduledExecutors.scheduleAtFixedRate(runnable, random.nextInt(60),  300, TimeUnit.SECONDS);
 	}
 
 	@Override

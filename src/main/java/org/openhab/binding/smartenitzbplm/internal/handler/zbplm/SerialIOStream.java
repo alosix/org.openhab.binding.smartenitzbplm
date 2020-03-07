@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Stream;
 
+import org.apache.commons.codec.binary.Hex;
 import org.eclipse.smarthome.io.transport.serial.PortInUseException;
 import org.eclipse.smarthome.io.transport.serial.SerialPort;
 import org.eclipse.smarthome.io.transport.serial.SerialPortEvent;
@@ -128,7 +129,7 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 				inputStream = serialPort.getInputStream();
 				outputStream = serialPort.getOutputStream();
 
-
+				
 			} catch (IOException e) {
 				logger.error("Error getting one of the streams", e);
 			}
@@ -177,15 +178,15 @@ public class SerialIOStream extends IOStream implements SerialPortEventListener 
 		if(SerialPortEvent.DATA_AVAILABLE == event.getEventType()) {
 			try {
 				int available = inputStream.available();
-				byte buffer[] = new byte[available];
+				byte buffer[] = new byte[64];
+				
 				int totalRead = 0;
 				while (totalRead < available) {
 					int read = inputStream.read(buffer);
 					logger.trace("Read {} bytes", read);
+					// Big reads from the modem seem to kill things, so we'll just read through and
+					// wait for it to calm down
 					msgFactory.addData(buffer, read);
-									//for (Msg m = msgFactory.processData(); m != null; m = msgFactory.processData()) {
-//						inboundQueue.put(m);
-	//				}
 					totalRead += read;
 				}
 			} catch (IOException e) {

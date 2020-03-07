@@ -80,7 +80,7 @@ public class Msg {
     private byte[] m_data = null;
     private MsgDefinition m_definition = new MsgDefinition();
     private Direction m_direction = Direction.TO_MODEM;
-    private long m_quietTime = 0;
+    private long m_quietTime = 1000;
     private String name = null;
 
     /**

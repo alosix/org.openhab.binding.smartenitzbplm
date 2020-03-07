@@ -43,9 +43,9 @@ public class MsgFactory {
 	private static final Logger logger = LoggerFactory.getLogger(MsgFactory.class);
 	// no idea what the max msg length could be, but
 	// I doubt it'll ever be larger than 4k
-	private final static int MAX_MSG_LEN = 128;
+	private final static int MAX_MSG_LEN = 1024;
 	private PipedInputStream pipedInputStream = new PipedInputStream(MAX_MSG_LEN);
-	private BufferedInputStream buffer = new BufferedInputStream(pipedInputStream);
+	private BufferedInputStream buffer = new BufferedInputStream(pipedInputStream, MAX_MSG_LEN);
 	private PipedOutputStream pipedOutputStream = null;
 	private ZBPLMHandler handler;
 	private BlockingQueue<Msg> inboundQueue;
@@ -131,7 +131,7 @@ public class MsgFactory {
 			// read through the data until we find a nack or a header
 			do {
 				// reset here so we can walk back in front of the header while parsing
-				buffer.mark(64); // we don't have any messages near this long yet
+				buffer.mark(32); // we don't have any messages near this long yet
 				header = (byte) buffer.read();
 			} while (header != 0x15 && header != 0x02);
 

@@ -129,7 +129,7 @@ public class InsteonThermostatThingHandler extends InsteonBaseThingHandler {
 			}
 		};
 		// run the status right now, and every 5 minutes
-		scheduledExecutors.scheduleAtFixedRate(runnable, random.nextInt(60), 60, TimeUnit.SECONDS);
+		scheduledExecutors.scheduleAtFixedRate(runnable, random.nextInt(60), 300, TimeUnit.SECONDS);
 	}
 
 	public int transformFanMode(int cmd) {
